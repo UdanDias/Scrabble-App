@@ -14,8 +14,9 @@ public class GameDTO {
     private String gameId;
     private String player1Id;
     private String player2Id;
-    private String score;
-    private String margin ;
+    private int score1;
+    private int score2;
+    private int margin ;
     private String winnerId;
     private LocalDate gameDate;
 
