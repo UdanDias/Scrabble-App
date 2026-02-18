@@ -20,6 +20,7 @@ public class PlayerServiceImpl implements PlayerService {
     public void addPlayer(PlayerDTO playerDTO) {
         playerDTO.setPlayerId(UtilData.generatePlayerId());
         playerDTO.setAge(UtilData.calcAge(playerDTO.getDob()));
+        playerDTO.setAccountCreatedDate(UtilData.generateTodayDate());
 
     }
 

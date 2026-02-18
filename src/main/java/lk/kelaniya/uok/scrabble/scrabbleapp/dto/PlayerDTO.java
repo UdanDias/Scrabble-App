@@ -24,11 +24,7 @@ public class PlayerDTO implements Serializable {
     private String faculty;
     private String academicLevel;
     private LocalDate accountCreatedDate;
-    private float totalWins;
-    private int totalGamesPlayed;
-    private int cumMargin;
-    private float avgMargin;
-    private int playerRank;
+
 
 
 

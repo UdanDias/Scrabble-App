@@ -43,12 +43,8 @@ public class PlayerController {
                 "123 Main St, Colombo",       // address
                 "Computing",                 // faculty
                 "Undergraduate",             // academicLevel
-                LocalDate.of(2025, 9, 1),    // accountCreatedDate
-                15.5f,                       // totalWins
-                20,                          // totalGamesPlayed
-                75,                          // cumMargin
-                3.75f,                       // avgMargin
-                2   ));
+                LocalDate.of(2025, 9, 1)  // accountCreatedDate
+                ));
     }
     @GetMapping("/getallplayers")
     public ResponseEntity<List<PlayerDTO>> getAllPlayers(){
@@ -65,12 +61,7 @@ public class PlayerController {
                 "123 Main St, Colombo",       // address
                 "Computing",                 // faculty
                 "Undergraduate",             // academicLevel
-                LocalDate.of(2025, 9, 1),    // accountCreatedDate
-                15.5f,                       // totalWins
-                20,                          // totalGamesPlayed
-                75,                          // cumMargin
-                3.75f,                       // avgMargin
-                2   ));
+                LocalDate.of(2025, 9, 1)));
         playerDTOList.add(new PlayerDTO(
                 "P002",                     // playerId
                 "Sanjana",                   // firstName
@@ -83,12 +74,7 @@ public class PlayerController {
                 "45 Lake Rd, Kandy",         // address
                 "Engineering",               // faculty
                 "Undergraduate",             // academicLevel
-                LocalDate.of(2025, 6, 15),   // accountCreatedDate
-                12.0f,                       // totalWins
-                18,                          // totalGamesPlayed
-                60,                          // cumMargin
-                3.33f,                       // avgMargin
-                5 ));
+                LocalDate.of(2025, 6, 15)));
         return ResponseEntity.ok(playerDTOList);
     }
 }

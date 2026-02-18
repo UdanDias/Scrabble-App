@@ -22,4 +22,8 @@ public class UtilData {
         return age;
 
     }
+
+    public static LocalDate generateTodayDate(){
+        return LocalDate.now();
+    }
 }
