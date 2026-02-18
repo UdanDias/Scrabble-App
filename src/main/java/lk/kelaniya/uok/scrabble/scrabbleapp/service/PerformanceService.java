@@ -7,8 +7,8 @@ import java.util.List;
 
 public interface PerformanceService {
     void addPerformance(PerformanceDTO performanceDTO);
-    void deletePlayer(String performanceId);
-    void updatePlayer(String performanceId,PerformanceDTO performanceDTO);
-    PlayerDTO getSelectedPlayer(String performanceId);
-    List<PlayerDTO> getAllPerformances();
+    void deletePerformance(String performanceId);
+    void updatePerformance(String performanceId,PerformanceDTO performanceDTO);
+    PerformanceDTO getSelectedPerformance(String performanceId);
+    List<PerformanceDTO> getAllPerformances();
 }

@@ -2,6 +2,9 @@ package lk.kelaniya.uok.scrabble.scrabbleapp.controller;
 
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PerformanceDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PlayerDTO;
+import lk.kelaniya.uok.scrabble.scrabbleapp.exception.PerformanceNotFoundException;
+import lk.kelaniya.uok.scrabble.scrabbleapp.service.PerformanceService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -13,55 +16,88 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/performance")
+@RequiredArgsConstructor
 public class PerformanceController {
+    private final PerformanceService performanceService;
     @GetMapping
     public String healthCheck(){
         return "Health controller is running";
     }
     @PostMapping(value = "/addperformance",consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Void> addPerformance(@RequestBody PerformanceDTO performanceDTO){
-        System.out.println(performanceDTO);
-        return new ResponseEntity<>(HttpStatus.CREATED);
+        if(performanceDTO==null){
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        try {
+            System.out.println(performanceDTO);
+            performanceService.addPerformance(performanceDTO);
+            return new ResponseEntity<>(HttpStatus.CREATED);
+        }catch (PerformanceNotFoundException e){
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
     }
     @DeleteMapping("/deletePerformance")
     public ResponseEntity<Void> deletePerformance(@RequestParam("performanceId") String performanceId){
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        if(performanceId==null){
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }try {
+            performanceService.deletePerformance(performanceId);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }catch (PerformanceNotFoundException e){
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }catch (Exception e){
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
     @PatchMapping(value = "/updateperformance",consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Void> updatePerformance(@RequestParam ("performanceId") String performanceId, @RequestBody PerformanceDTO playerDTO){
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    public ResponseEntity<Void> updatePerformance(@RequestParam ("performanceId") String performanceId, @RequestBody PerformanceDTO performanceDTO){
+        if(performanceId==null||performanceDTO==null){
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        try {
+            performanceService.updatePerformance(performanceId, performanceDTO);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }catch (PerformanceNotFoundException e){
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }catch (Exception e){
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
     @GetMapping("/getselectedperformance")
     public ResponseEntity<PerformanceDTO> getSelectedPerformance(@RequestParam ("performanceId")String performanceId){
-        return ResponseEntity.ok(new PerformanceDTO(
-                "PERF001",      // performanceId
-                "P001",         // playerId
-                18.0f,          // totalWins
-                25,             // totalGamesPlayed
-                320,            // cumMargin
-                12.8f,          // avgMargin
-                3    // accountCreatedDate
-        ));
+        if(performanceId==null){
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }try {
+            performanceService.getSelectedPerformance(performanceId);
+            return ResponseEntity.ok(performanceService.getSelectedPerformance(performanceId));
+        }catch (PerformanceNotFoundException e){
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }catch (Exception e){
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
     @GetMapping("/getallperformances")
-    public ResponseEntity<List<PerformanceDTO>> getAllPerformances(){
-        List<PerformanceDTO> performanceDTOList=new ArrayList<>();
-        performanceDTOList.add(new PerformanceDTO(
-                "PERF001",      // performanceId
-                "P001",         // playerId
-                18.0f,          // totalWins
-                25,             // totalGamesPlayed
-                320,            // cumMargin
-                12.8f,          // avgMargin
-                3  ));
-        performanceDTOList.add(new PerformanceDTO(
-                "PERF002",      // performanceId
-                "P002",         // playerId
-                12.0f,          // totalWins
-                20,             // totalGamesPlayed
-                150,            // cumMargin
-                7.5f,           // avgMargin
-                6    ));
-        return ResponseEntity.ok(performanceDTOList);
+    public ResponseEntity<List<PerformanceDTO>> getAllPerformances() {
+        try {
+            performanceService.getAllPerformances();
+            return ResponseEntity.ok(performanceService.getAllPerformances());
+        } catch (PerformanceNotFoundException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }

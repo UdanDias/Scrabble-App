@@ -19,22 +19,22 @@ public class PerformanceServiceImpl implements PerformanceService {
     }
 
     @Override
-    public void deletePlayer(String performanceId) {
+    public void deletePerformance(String performanceId) {
 
     }
 
     @Override
-    public void updatePlayer(String performanceId, PerformanceDTO performanceDTO) {
+    public void updatePerformance(String performanceId, PerformanceDTO performanceDTO) {
 
     }
 
     @Override
-    public PlayerDTO getSelectedPlayer(String performanceId) {
+    public PerformanceDTO getSelectedPerformance(String performanceId) {
         return null;
     }
 
     @Override
-    public List<PlayerDTO> getAllPerformances() {
+    public List<PerformanceDTO> getAllPerformances() {
         return List.of();
     }
 }

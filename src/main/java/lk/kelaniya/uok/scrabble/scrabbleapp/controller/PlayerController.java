@@ -1,6 +1,9 @@
 package lk.kelaniya.uok.scrabble.scrabbleapp.controller;
 
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PlayerDTO;
+import lk.kelaniya.uok.scrabble.scrabbleapp.exception.PlayerNotFoundException;
+import lk.kelaniya.uok.scrabble.scrabbleapp.service.PlayerService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -12,69 +15,89 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/player")
+@RequiredArgsConstructor
 public class PlayerController {
+    private final PlayerService playerService;
     @GetMapping
     public String healthCheck(){
         return "Health controller is running";
     }
     @PostMapping(value = "/addplayer",consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Void> addPlayer(@RequestBody PlayerDTO playerDTO){
-        System.out.println(playerDTO);
-        return new ResponseEntity<>(HttpStatus.CREATED);
+
+        if(playerDTO==null){
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        try {
+            System.out.println(playerDTO);
+            playerService.addPlayer(playerDTO);
+            return new ResponseEntity<>(HttpStatus.CREATED);
+        } catch (PlayerNotFoundException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);        }
+
     }
     @DeleteMapping("/deleteplayer")
     public ResponseEntity<Void> deletePlayer(@RequestParam("playerId") String playerId){
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        if(playerId==null){
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        try {
+            playerService.deletePlayer(playerId);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }catch (PlayerNotFoundException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
     @PatchMapping(value = "/updateplayer",consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Void> updatePlayer(@RequestParam ("playerId") String playerId, @RequestBody PlayerDTO playerDTO){
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        if(playerId==null||playerDTO==null){
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        try {
+            playerService.updatePlayer(playerId, playerDTO);
+            System.out.println(playerDTO);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }catch (PlayerNotFoundException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
     @GetMapping("/getselectedplayer")
     public ResponseEntity<PlayerDTO> getSelectedPlayer(@RequestParam ("playerId")String playerId){
-        return ResponseEntity.ok(new PlayerDTO("P001",                     // playerId
-                "Udan",                      // firstName
-                "Dias",                      // lastName
-                17,                          // age
-                "Male",                      // gender
-                LocalDate.of(2009, 5, 10),   // dob
-                "udan.dias@example.com",      // email
-                "+94771234567",               // phone
-                "123 Main St, Colombo",       // address
-                "Computing",                 // faculty
-                "Undergraduate",             // academicLevel
-                LocalDate.of(2025, 9, 1)  // accountCreatedDate
-                ));
+        if(playerId==null){
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        try {
+            return ResponseEntity.ok(playerService.getSelectedPlayer(playerId));
+        }catch (PlayerNotFoundException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
     @GetMapping("/getallplayers")
     public ResponseEntity<List<PlayerDTO>> getAllPlayers(){
-        List<PlayerDTO> playerDTOList=new ArrayList<>();
-        playerDTOList.add(new PlayerDTO(
-                "P001",                     // playerId
-                "Udan",                      // firstName
-                "Dias",                      // lastName
-                17,                          // age
-                "Male",                      // gender
-                LocalDate.of(2009, 5, 10),   // dob
-                "udan.dias@example.com",      // email
-                "+94771234567",               // phone
-                "123 Main St, Colombo",       // address
-                "Computing",                 // faculty
-                "Undergraduate",             // academicLevel
-                LocalDate.of(2025, 9, 1)));
-        playerDTOList.add(new PlayerDTO(
-                "P002",                     // playerId
-                "Sanjana",                   // firstName
-                "Perera",                    // lastName
-                16,                          // age
-                "Female",                    // gender
-                LocalDate.of(2010, 8, 22),   // dob
-                "sanjana.perera@example.com",// email
-                "+94779876543",              // phone
-                "45 Lake Rd, Kandy",         // address
-                "Engineering",               // faculty
-                "Undergraduate",             // academicLevel
-                LocalDate.of(2025, 6, 15)));
-        return ResponseEntity.ok(playerDTOList);
+        try {
+            return ResponseEntity.ok(playerService.getAllPlayers());
+        }catch (PlayerNotFoundException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }
