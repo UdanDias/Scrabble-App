@@ -1,9 +1,11 @@
 package lk.kelaniya.uok.scrabble.scrabbleapp.service.impl;
 
 import jakarta.transaction.Transactional;
+import lk.kelaniya.uok.scrabble.scrabbleapp.dao.GameDao;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dao.PerformanceDao;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dao.PlayerDao;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PlayerDTO;
+import lk.kelaniya.uok.scrabble.scrabbleapp.entity.GameEntity;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.PerformanceEntity;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.PlayerEntity;
 import lk.kelaniya.uok.scrabble.scrabbleapp.exception.PlayerNotFoundException;
@@ -28,6 +30,7 @@ public class PlayerServiceImpl implements PlayerService {
     private final PlayerDao playerDao;
     private final PerformanceDao performanceDao;
     private final EntityDTOConvert entityDTOConvert;
+    private final GameDao gameDao;
     @Override
     public void addPlayer(PlayerDTO playerDTO) {
         playerDTO.setPlayerId(UtilData.generatePlayerId());
@@ -54,11 +57,39 @@ public class PlayerServiceImpl implements PlayerService {
 
     }
 
-    @Override
-    public void deletePlayer(String playerId) {
-        playerDao.findById(playerId).orElseThrow(()->new PlayerNotFoundException("Player not found"));
-        playerDao.deleteById(playerId);
+//    @Override
+//    public void deletePlayer(String playerId) {
+//        playerDao.findById(playerId).orElseThrow(()->new PlayerNotFoundException("Player not found"));
+//        playerDao.deleteById(playerId);
+//    }
+@Override
+public void deletePlayer(String playerId) {
+    playerDao.findById(playerId)
+            .orElseThrow(() -> new PlayerNotFoundException("Player not found"));
+
+    // Nullify winner reference in games where this player won
+    List<GameEntity> wonGames = gameDao.findByWinner_PlayerId(playerId);
+    for (GameEntity game : wonGames) {
+        game.setWinner(null);
+        gameDao.save(game);
     }
+
+    // Nullify player1 reference in games
+    List<GameEntity> player1Games = gameDao.findByPlayer1_PlayerId(playerId);
+    for (GameEntity game : player1Games) {
+        game.setPlayer1(null);
+        gameDao.save(game);
+    }
+
+    // Nullify player2 reference in games
+    List<GameEntity> player2Games = gameDao.findByPlayer2_PlayerId(playerId);
+    for (GameEntity game : player2Games) {
+        game.setPlayer2(null);
+        gameDao.save(game);
+    }
+
+    playerDao.deleteById(playerId);
+}
 
     @Override
     public void updatePlayer(String playerId, PlayerDTO playerDTO) {

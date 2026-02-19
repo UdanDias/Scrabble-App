@@ -17,11 +17,11 @@ public class GameEntity {
     private String gameId;
 
     @ManyToOne
-    @JoinColumn(name = "player1_id", nullable = false)
+    @JoinColumn(name = "player1_id", nullable = true)
     private PlayerEntity player1;
 
     @ManyToOne
-    @JoinColumn(name = "player2_id", nullable = false)
+    @JoinColumn(name = "player2_id", nullable = true)
     private PlayerEntity player2;
 
     private int score1;

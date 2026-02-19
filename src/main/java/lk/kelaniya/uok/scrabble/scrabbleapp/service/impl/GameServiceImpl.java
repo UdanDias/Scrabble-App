@@ -94,9 +94,24 @@ public class GameServiceImpl implements GameService {
             performanceCalc.updatePerformanceAfterGame(player1Perf,gameDTO);
             performanceCalc.updatePerformanceAfterGame(player2Perf,gameDTO);
         }
+        int cumMargin1= player1Perf.getCumMargin();
+        int newCumMargin1=cumMargin1+(gameDTO.getScore1()-gameDTO.getScore2());
+        player1Perf.setCumMargin(newCumMargin1);
+
+        int cumMargin2= player2Perf.getCumMargin();
+        int newCumMargin2=cumMargin2+(gameDTO.getScore2()-gameDTO.getScore1());
+        player2Perf.setCumMargin(newCumMargin2);
+
+        double avgMargin1 = (double) player1Perf.getCumMargin() / player1Perf.getTotalGamesPlayed();
+        avgMargin1 = Math.round(avgMargin1 * 100.0) / 100.0;  // round to 2 decimal places
+        player1Perf.setAvgMargin(avgMargin1);
+
+        double avgMargin2 = (double) player2Perf.getCumMargin() / player2Perf.getTotalGamesPlayed();
+        avgMargin2 = Math.round(avgMargin2 * 100.0) / 100.0;  // round to 2 decimal places
+        player2Perf.setAvgMargin(avgMargin2);
 
 
-
+        performanceCalc.updateRanks();
     }
 
     @Override
