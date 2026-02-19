@@ -5,7 +5,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
-import java.security.PrivateKey;
 import java.time.LocalDate;
 
 @AllArgsConstructor
@@ -17,6 +16,7 @@ public class GameDTO implements Serializable {
     private String player2Id;
     private int score1;
     private int score2;
+    private boolean gameTied =false;
     private int margin ;
     private String winnerId;
     private LocalDate gameDate;

@@ -11,9 +11,9 @@ import java.io.Serializable;
 public class PerformanceDTO implements Serializable {
     private String performanceId;
     private String playerId;
-    private float totalWins;
+    private double totalWins;
     private int totalGamesPlayed;
     private int cumMargin;
-    private float avgMargin;
+    private double avgMargin;
     private int playerRank;
 }

@@ -19,9 +19,9 @@ public class PerformanceEntity {
     @JoinColumn(name = "player_id", unique = true)
     private PlayerEntity player;
 
-    private float totalWins;
+    private double totalWins;
     private int totalGamesPlayed;
     private int cumMargin;
-    private float avgMargin;
+    private double avgMargin;
     private int playerRank;
 }
