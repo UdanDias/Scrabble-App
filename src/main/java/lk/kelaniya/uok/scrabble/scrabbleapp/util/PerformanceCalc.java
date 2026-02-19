@@ -62,17 +62,18 @@ public class PerformanceCalc {
 
         // Sort by totalWins DESC, then avgMargin DESC (rounded to 2 decimals)
         performances.sort((p1, p2) -> {
-            // Compare total wins (double) descending
-            int cmpWins = Double.compare(p2.getTotalWins(), p1.getTotalWins());
+            double wins1 = p1.getTotalWins() != null ? p1.getTotalWins() : 0.0;
+            double wins2 = p2.getTotalWins() != null ? p2.getTotalWins() : 0.0;
+
+            int cmpWins = Double.compare(wins2, wins1);
             if (cmpWins != 0) {
                 return cmpWins;
             }
 
-            // Compare avgMargin rounded to 2 decimals
-            double avg1 = Math.round(p1.getAvgMargin() * 100.0) / 100.0;
-            double avg2 = Math.round(p2.getAvgMargin() * 100.0) / 100.0;
+            double avg1 = p1.getAvgMargin() != null ? Math.round(p1.getAvgMargin() * 100.0) / 100.0 : 0.0;
+            double avg2 = p2.getAvgMargin() != null ? Math.round(p2.getAvgMargin() * 100.0) / 100.0 : 0.0;
 
-            return Double.compare(avg2, avg1); // descending
+            return Double.compare(avg2, avg1);
         });
 
         int rank = 1;
@@ -82,13 +83,21 @@ public class PerformanceCalc {
 
         for (PerformanceEntity current : performances) {
 
-            double currentAvg = Math.round(current.getAvgMargin() * 100.0) / 100.0;
+            double currentAvg = current.getAvgMargin() != null
+                    ? Math.round(current.getAvgMargin() * 100.0) / 100.0
+                    : 0.0;
             current.setAvgMargin(currentAvg);
 
             if (previous != null) {
-                double prevAvg = Math.round(previous.getAvgMargin() * 100.0) / 100.0;
+                double prevAvg = previous.getAvgMargin() != null
+                        ? Math.round(previous.getAvgMargin() * 100.0) / 100.0
+                        : 0.0;
 
-                if (current.getTotalWins() == previous.getTotalWins() &&
+                double currentWins = current.getTotalWins() != null ? current.getTotalWins() : 0.0;
+                double prevWins = previous.getTotalWins() != null ? previous.getTotalWins() : 0.0;
+
+                // use Double.compare instead of == for wrapper types
+                if (Double.compare(currentWins, prevWins) == 0 &&
                         Double.compare(currentAvg, prevAvg) == 0) {
                     current.setPlayerRank(rank);
                     sameRankCount++;
@@ -139,15 +148,17 @@ public class PerformanceCalc {
             performanceDao.save(performance);
         }
 
-        List<GameEntity> GamesList=gameDao.findAll();
-        for(GameEntity game : GamesList){
-            GameDTO gameDTO=entityDTOConvert.convertGameEntityToGameDTO(game);
-            PerformanceEntity player1Perf=performanceDao.findById(game.getPlayer1().getPlayerId())
-                    .orElseThrow(()->new PlayerNotFoundException("Player 1 not found"));
-            PerformanceEntity player2Perf=performanceDao.findById(game.getPlayer2().getPlayerId())
-                    .orElseThrow(()->new PlayerNotFoundException("Player 2 not found"));
+        List<GameEntity> gamesList = gameDao.findAll();
+        for (GameEntity game : gamesList) {
+            if (game.getPlayer1() == null || game.getPlayer2() == null) {
+                continue;
+            }
+            GameDTO gameDTO = entityDTOConvert.convertGameEntityToGameDTO(game);
+            PerformanceEntity player1Perf = performanceDao.findById(game.getPlayer1().getPlayerId())
+                    .orElseThrow(() -> new PlayerNotFoundException("Player 1 not found"));
+            PerformanceEntity player2Perf = performanceDao.findById(game.getPlayer2().getPlayerId())
+                    .orElseThrow(() -> new PlayerNotFoundException("Player 2 not found"));
             updateBothPlayersPerformance(player1Perf, player2Perf, gameDTO);
-
         }
         updateRanks();
     }

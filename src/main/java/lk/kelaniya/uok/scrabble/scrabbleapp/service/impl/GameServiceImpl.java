@@ -31,7 +31,6 @@ import java.util.List;
 public class GameServiceImpl implements GameService {
 
     private final PerformanceCalc performanceCalc;
-    private final PerformanceDao performanceDao;
     private final GameDao gameDao;
     private final EntityDTOConvert entityDTOConvert;
     private final PlayerDao playerDao;
@@ -65,21 +64,8 @@ public class GameServiceImpl implements GameService {
         }
         gameDao.save(gameEntity);
         System.out.println("from gameServiceImpl DTO : "+gameDTO);
-//        System.out.println("from gameServiceImpl DTO : "+gameDTO);
 
-
-        PerformanceEntity player1Perf=performanceDao.findById(player1.getPlayerId())
-                .orElseThrow(()->new PlayerNotFoundException("Player1perf not found"));
-
-        PerformanceEntity player2Perf=performanceDao.findById(player2.getPlayerId())
-                .orElseThrow(()->new PlayerNotFoundException("Player2perf not found"));
-        System.out.println("from playerServiceImpl EntityPerf1 : "+player1Perf);
-        System.out.println("from playerServiceImpl EntityPerf2 : "+player2Perf);
-
-
-
-        performanceCalc.updateBothPlayersPerformance(player1Perf,player2Perf,gameDTO);
-        performanceCalc.updateRanks();
+        performanceCalc.reCalculateAllPerformances();
     }
 
     @Override
@@ -120,11 +106,12 @@ public class GameServiceImpl implements GameService {
 
     @Override
     public GameDTO getSelectedGame(String gameId) {
-        return null;
+        GameEntity gameEntity=gameDao.findById(gameId).orElseThrow(()->new GameNotFoundException("Game not found"));
+        return entityDTOConvert.convertGameEntityToGameDTO(gameEntity);
     }
 
     @Override
     public List<GameDTO> getAllGames() {
-        return List.of();
+        return entityDTOConvert.convertGameEntityListToGameDTOList(gameDao.findAll());
     }
 }
