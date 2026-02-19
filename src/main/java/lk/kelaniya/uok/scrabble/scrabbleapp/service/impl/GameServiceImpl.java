@@ -9,6 +9,7 @@ import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PerformanceDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.GameEntity;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.PerformanceEntity;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.PlayerEntity;
+import lk.kelaniya.uok.scrabble.scrabbleapp.exception.GameNotFoundException;
 import lk.kelaniya.uok.scrabble.scrabbleapp.exception.InputMarginIncorrectException;
 import lk.kelaniya.uok.scrabble.scrabbleapp.exception.PlayerNotFoundException;
 import lk.kelaniya.uok.scrabble.scrabbleapp.service.GameService;
@@ -116,7 +117,8 @@ public class GameServiceImpl implements GameService {
 
     @Override
     public void deleteGame(String gameId) {
-
+        GameEntity gameEntity=gameDao.findById(gameId).orElseThrow(()-> new GameNotFoundException("Game not found"));
+        gameDao.delete(gameEntity);
     }
 
     @Override
