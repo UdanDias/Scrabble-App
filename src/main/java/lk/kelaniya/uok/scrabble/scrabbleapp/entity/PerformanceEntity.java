@@ -16,7 +16,7 @@ public class PerformanceEntity {
     private String performanceId;
 
     @OneToOne
-    @JoinColumn(name = "player_id", nullable = false, unique = true)
+    @JoinColumn(name = "player_id", unique = true)
     private PlayerEntity player;
 
     private float totalWins;
