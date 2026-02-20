@@ -116,7 +116,9 @@ public class PerformanceCalc {
     public void updateBothPlayersPerformance(PerformanceEntity player1Perf, PerformanceEntity player2Perf, GameDTO gameDTO) {
 
         if (!gameDTO.isGameTied()) {
-            if (gameDTO.getWinnerId().equals(player1Perf.getPlayerId())) {
+            // add null check before calling .equals()
+            String winnerId = gameDTO.getWinnerId();
+            if (winnerId != null && winnerId.equals(player1Perf.getPlayerId())) {
                 updatePerformanceAfterGame(player1Perf, gameDTO);
                 player2Perf.setTotalGamesPlayed(player2Perf.getTotalGamesPlayed() + 1);
             } else {

@@ -31,10 +31,19 @@ public class EntityDTOConvert {
         return modelMapper.map(gameDTO,GameEntity.class);
     }
     public GameDTO convertGameEntityToGameDTO(GameEntity gameEntity) {
-        return modelMapper.map(gameEntity,GameDTO.class);
+        GameDTO gameDTO = modelMapper.map(gameEntity, GameDTO.class);
+        // gameTied is not stored in DB so we derive it from scores
+        gameDTO.setGameTied(gameEntity.getScore1() == gameEntity.getScore2());
+        // ensure winnerId is null for tied games not empty string
+        if (gameDTO.isGameTied()) {
+            gameDTO.setWinnerId(null);
+        }
+        return gameDTO;
     }
     public List<GameDTO> convertGameEntityListToGameDTOList(List<GameEntity> gameEntityList) {
-        return modelMapper.map(gameEntityList,new TypeToken<List<GameDTO>>(){}.getType());
+        return gameEntityList.stream()
+                .map(this::convertGameEntityToGameDTO)  // changed this line
+                .collect(java.util.stream.Collectors.toList());
     }
     public PerformanceEntity convertPerformanceDTOToPerformanceEntity(PerformanceDTO performanceDTO) {
         return modelMapper.map(performanceDTO,PerformanceEntity.class);
