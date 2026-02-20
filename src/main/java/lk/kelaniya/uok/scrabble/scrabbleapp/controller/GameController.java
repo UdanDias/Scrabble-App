@@ -7,9 +7,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -28,7 +25,6 @@ public class GameController {
         }
         try {
             gameService.addGame(gameDTO);
-            System.out.println("from game controller DTO : "+gameDTO);
             return new ResponseEntity<>(HttpStatus.CREATED);
         }catch (GameNotFoundException e) {
             e.printStackTrace();
@@ -61,7 +57,6 @@ public class GameController {
         }
         try {
             gameService.updateGame(gameId,gameDTO);
-            System.out.println(gameDTO);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }catch (GameNotFoundException e) {
             e.printStackTrace();

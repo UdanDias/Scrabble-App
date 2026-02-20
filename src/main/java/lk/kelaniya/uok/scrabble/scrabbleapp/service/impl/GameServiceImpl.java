@@ -63,8 +63,6 @@ public class GameServiceImpl implements GameService {
             gameEntity.setWinner(winner);
         }
         gameDao.save(gameEntity);
-        System.out.println("from gameServiceImpl DTO : "+gameDTO);
-
         performanceCalc.reCalculateAllPerformances();
     }
 
@@ -98,10 +96,7 @@ public class GameServiceImpl implements GameService {
         }
         gameEntity.setGameDate(gameDTO.getGameDate());
         gameDao.save(gameEntity);
-
-
         performanceCalc.reCalculateAllPerformances();
-
     }
 
     @Override

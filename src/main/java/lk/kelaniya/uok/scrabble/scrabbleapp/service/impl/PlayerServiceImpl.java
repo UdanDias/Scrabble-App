@@ -19,8 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+
 
 @Service
 @RequiredArgsConstructor
@@ -29,9 +28,7 @@ import java.util.UUID;
 public class PlayerServiceImpl implements PlayerService {
 
     private final PlayerDao playerDao;
-    private final PerformanceDao performanceDao;
     private final EntityDTOConvert entityDTOConvert;
-    private final GameDao gameDao;
     @Override
     public void addPlayer(PlayerDTO playerDTO) {
         playerDTO.setPlayerId(UtilData.generatePlayerId());
@@ -39,10 +36,8 @@ public class PlayerServiceImpl implements PlayerService {
         playerDTO.setAccountCreatedDate(UtilData.generateTodayDate());
 
         PlayerEntity playerEntity=entityDTOConvert.convertPlayerDTOToPlayerEntity(playerDTO);
-
         PerformanceEntity performanceEntity=new PerformanceEntity();
 
-//        performanceEntity.setPlayerId(playerEntity.getPlayerId());
         performanceEntity.setPlayer(playerEntity);
         performanceEntity.setTotalWins(0.0);
         performanceEntity.setTotalGamesPlayed(0);
@@ -51,18 +46,10 @@ public class PlayerServiceImpl implements PlayerService {
         performanceEntity.setPlayerRank(0);
 
         playerEntity.setPerformance(performanceEntity);
-        System.out.println("from playerServiceImpl DTO :  "+playerDTO);
-        System.out.println("from playerServiceImpl Entity :  "+playerEntity);
-        System.out.println("from playerServiceImpl PerfEntity :  "+performanceEntity);
         playerDao.save(playerEntity);
 
     }
 
-//    @Override
-//    public void deletePlayer(String playerId) {
-//        playerDao.findById(playerId).orElseThrow(()->new PlayerNotFoundException("Player not found"));
-//        playerDao.deleteById(playerId);
-//    }
 @Override
 public void deletePlayer(String playerId) {
     PlayerEntity playerEntity = playerDao.findById(playerId)

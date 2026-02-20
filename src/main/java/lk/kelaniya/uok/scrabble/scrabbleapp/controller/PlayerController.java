@@ -29,7 +29,6 @@ public class PlayerController {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
         try {
-            System.out.println("From playerController"+playerDTO);
             playerService.addPlayer(playerDTO);
             return new ResponseEntity<>(HttpStatus.CREATED);
         } catch (PlayerNotFoundException e) {
@@ -63,7 +62,6 @@ public class PlayerController {
         }
         try {
             playerService.updatePlayer(playerId, playerDTO);
-            System.out.println(playerDTO);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }catch (PlayerNotFoundException e) {
             e.printStackTrace();

@@ -50,5 +50,5 @@ public class PlayerEntity {
     @Column(nullable = false)
     private boolean deleted = false;
 
-    private LocalDate deletedDate; // optional, for auditing
+    private LocalDate deletedDate;
 }

@@ -11,19 +11,13 @@ public class UtilData {
     public static String generateGameId(){
         return "G/-"+UUID.randomUUID();
     }
-    public static String generatePerformanceId(){
-        return "PERF/-"+UUID.randomUUID();
-    }
 
     public static int calcAge(LocalDate dob){
         if(dob == null){
             throw new IllegalArgumentException("Date of Birth not found");
         }
 
-        int age=Period.between(dob, LocalDate.now()).getYears();
-        System.out.println("Age : "+age);
-        return age;
-
+        return Period.between(dob, LocalDate.now()).getYears();
     }
 
     public static LocalDate generateTodayDate(){
