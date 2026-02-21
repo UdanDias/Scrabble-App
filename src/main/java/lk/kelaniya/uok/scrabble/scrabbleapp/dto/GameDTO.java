@@ -20,5 +20,6 @@ public class GameDTO implements Serializable {
     private int margin ;
     private String winnerId;
     private LocalDate gameDate;
+    private boolean bye = false;
 
 }

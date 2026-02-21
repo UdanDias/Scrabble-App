@@ -33,4 +33,5 @@ public class GameEntity {
     private PlayerEntity winner;
 
     private LocalDate gameDate;
+    private boolean bye = false;
 }

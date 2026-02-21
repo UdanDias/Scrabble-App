@@ -20,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 
-
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -62,6 +62,26 @@ public class GameServiceImpl implements GameService {
                     .orElseThrow(() -> new PlayerNotFoundException("Winner not found"));
             gameEntity.setWinner(winner);
         }
+        gameDao.save(gameEntity);
+        performanceCalc.reCalculateAllPerformances();
+    }
+
+    @Override
+    public void addByeGame(String playerId, LocalDate gameDate) {
+        PlayerEntity player = playerDao.findById(playerId)
+                .orElseThrow(() -> new PlayerNotFoundException("Player not found"));
+
+        GameEntity gameEntity = new GameEntity();
+        gameEntity.setGameId(UtilData.generateGameId());
+        gameEntity.setPlayer1(player);
+        gameEntity.setPlayer2(null);
+        gameEntity.setScore1(0);
+        gameEntity.setScore2(0);
+        gameEntity.setMargin(50);
+        gameEntity.setWinner(player);
+        gameEntity.setGameDate(gameDate);
+        gameEntity.setBye(true);
+
         gameDao.save(gameEntity);
         performanceCalc.reCalculateAllPerformances();
     }

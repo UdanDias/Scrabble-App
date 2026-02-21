@@ -139,9 +139,36 @@ public class PerformanceCalc {
         player2Perf.setAvgMargin(Math.round((double) player2Perf.getCumMargin() / player2Perf.getTotalGamesPlayed() * 100.0) / 100.0);
     }
 
-    public void reCalculateAllPerformances(){
+//    public void reCalculateAllPerformances(){
+//        List<PerformanceEntity> performanceEntityList = performanceDao.findAll();
+//        for(PerformanceEntity performance : performanceEntityList){
+//            performance.setTotalGamesPlayed(0);
+//            performance.setAvgMargin(0.0);
+//            performance.setPlayerRank(0);
+//            performance.setCumMargin(0);
+//            performance.setTotalWins(0.0);
+//            performanceDao.save(performance);
+//        }
+//
+//        List<GameEntity> gamesList = gameDao.findAll();
+//        for (GameEntity game : gamesList) {
+//            if (game.getPlayer1() == null || game.getPlayer2() == null) {
+//                continue;
+//            }
+//            GameDTO gameDTO = entityDTOConvert.convertGameEntityToGameDTO(game);
+//            PerformanceEntity player1Perf = performanceDao.findById(game.getPlayer1().getPlayerId())
+//                    .orElseThrow(() -> new PlayerNotFoundException("Player 1 not found"));
+//            PerformanceEntity player2Perf = performanceDao.findById(game.getPlayer2().getPlayerId())
+//                    .orElseThrow(() -> new PlayerNotFoundException("Player 2 not found"));
+//            updateBothPlayersPerformance(player1Perf, player2Perf, gameDTO);
+//        }
+//        updateRanks();
+//    }
+
+    public void reCalculateAllPerformances() {
+        // reset all performances
         List<PerformanceEntity> performanceEntityList = performanceDao.findAll();
-        for(PerformanceEntity performance : performanceEntityList){
+        for (PerformanceEntity performance : performanceEntityList) {
             performance.setTotalGamesPlayed(0);
             performance.setAvgMargin(0.0);
             performance.setPlayerRank(0);
@@ -152,17 +179,36 @@ public class PerformanceCalc {
 
         List<GameEntity> gamesList = gameDao.findAll();
         for (GameEntity game : gamesList) {
-            if (game.getPlayer1() == null || game.getPlayer2() == null) {
-                continue;
+
+            // ✅ bye game — handle separately and skip normal logic completely
+            if (game.isBye()) {
+                PerformanceEntity playerPerf = performanceDao.findById(game.getPlayer1().getPlayerId())
+                        .orElseThrow(() -> new PlayerNotFoundException("Player not found"));
+                applyByePerformance(playerPerf); // +1 game, +1 win, +50 margin
+                continue; // ← skips everything below, no score difference calculated
             }
+
+            // ✅ null check for safety on normal games
+            if (game.getPlayer1() == null || game.getPlayer2() == null) continue;
+
             GameDTO gameDTO = entityDTOConvert.convertGameEntityToGameDTO(game);
             PerformanceEntity player1Perf = performanceDao.findById(game.getPlayer1().getPlayerId())
                     .orElseThrow(() -> new PlayerNotFoundException("Player 1 not found"));
             PerformanceEntity player2Perf = performanceDao.findById(game.getPlayer2().getPlayerId())
                     .orElseThrow(() -> new PlayerNotFoundException("Player 2 not found"));
+
             updateBothPlayersPerformance(player1Perf, player2Perf, gameDTO);
         }
         updateRanks();
+    }
+    public void applyByePerformance(PerformanceEntity performance) {
+        performance.setTotalGamesPlayed(performance.getTotalGamesPlayed() + 1);
+        performance.setTotalWins(performance.getTotalWins() + 1);
+        performance.setCumMargin(performance.getCumMargin() + 50); // ✅ fixed +50, not score difference
+        performance.setAvgMargin(
+                Math.round((double) performance.getCumMargin() / performance.getTotalGamesPlayed() * 100.0) / 100.0
+        );
+        performanceDao.save(performance);
     }
 
 

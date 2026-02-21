@@ -1,12 +1,16 @@
 package lk.kelaniya.uok.scrabble.scrabbleapp.controller;
 
+import lk.kelaniya.uok.scrabble.scrabbleapp.dto.ByeGameDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.GameDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.exception.GameNotFoundException;
+import lk.kelaniya.uok.scrabble.scrabbleapp.exception.PlayerNotFoundException;
 import lk.kelaniya.uok.scrabble.scrabbleapp.service.GameService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -34,6 +38,24 @@ public class GameController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    // ✅ Fixed controller method
+    @PostMapping("/addbyegame")
+    public ResponseEntity<Void> addByeGame(@RequestBody ByeGameDTO byeGameDTO) {
+        if (byeGameDTO.getPlayerId() == null || byeGameDTO.getGameDate() == null) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        try {
+            gameService.addByeGame(byeGameDTO.getPlayerId(), byeGameDTO.getGameDate());
+            return new ResponseEntity<>(HttpStatus.CREATED);
+        } catch (PlayerNotFoundException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     @DeleteMapping("/deletegame")
     public ResponseEntity<Void> deleteGame(@RequestParam("gameId") String gameId){
         if(gameId==null){
