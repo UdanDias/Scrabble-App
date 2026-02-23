@@ -115,4 +115,16 @@ public class GameController {
            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
        }
     }
+    @GetMapping("/getplayergames")
+    public ResponseEntity<List<GameDTO>> getAllGamesByPlayerId(@RequestParam("playerId") String playerId) {
+        try {
+            return ResponseEntity.ok(gameService.getAllGamesByPlayerId(playerId));
+        } catch (PlayerNotFoundException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

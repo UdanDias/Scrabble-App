@@ -131,4 +131,12 @@ public class GameServiceImpl implements GameService {
     public List<GameDTO> getAllGames() {
         return entityDTOConvert.convertGameEntityListToGameDTOList(gameDao.findAll());
     }
+    @Override
+    public List<GameDTO> getAllGamesByPlayerId(String playerId) {
+        playerDao.findById(playerId)
+                .orElseThrow(() -> new PlayerNotFoundException("Player not found"));
+
+        List<GameEntity> games = gameDao.getAllGamesByPlayerId(playerId);
+        return entityDTOConvert.convertGameEntityListToGameDTOList(games);
+    }
 }
