@@ -17,8 +17,8 @@ public class GameDTO implements Serializable {
     private String player2Id;
     private int score1;
     private int score2;
-    private boolean gameTied =false;
     private int margin ;
+    private boolean gameTied =false;
     private String winnerId;
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate gameDate;

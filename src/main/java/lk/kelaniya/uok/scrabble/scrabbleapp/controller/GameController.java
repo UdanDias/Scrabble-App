@@ -73,13 +73,13 @@ public class GameController {
         }
     }
     @PatchMapping("/updategame")
-    public ResponseEntity<Void> updateGame(@RequestParam("gameId")String gameId , @RequestBody GameDTO gameDTO){
+    public ResponseEntity<GameDTO> updateGame(@RequestParam("gameId")String gameId , @RequestBody GameDTO gameDTO){
         if(gameId==null||gameDTO==null){
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
         try {
-            gameService.updateGame(gameId,gameDTO);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            GameDTO updatedGame = gameService.updateGame(gameId,gameDTO);
+            return new ResponseEntity<>(HttpStatus.OK);
         }catch (GameNotFoundException e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);

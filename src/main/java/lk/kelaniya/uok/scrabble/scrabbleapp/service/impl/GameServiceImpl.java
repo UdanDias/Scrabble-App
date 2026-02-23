@@ -94,7 +94,7 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
-    public void updateGame(String gameId, GameDTO gameDTO) {
+    public GameDTO updateGame(String gameId, GameDTO gameDTO) {
         GameEntity gameEntity=gameDao.findById(gameId).orElseThrow(()->new GameNotFoundException("Game not found"));
         PlayerEntity player1=playerDao.findById(gameDTO.getPlayer1Id())
                         .orElseThrow(()->new PlayerNotFoundException("Player1 Not Found"));
@@ -115,8 +115,9 @@ public class GameServiceImpl implements GameService {
             gameEntity.setWinner(null);
         }
         gameEntity.setGameDate(gameDTO.getGameDate());
-        gameDao.save(gameEntity);
+        GameEntity updatedGame = gameDao.save(gameEntity);
         performanceCalc.reCalculateAllPerformances();
+        return entityDTOConvert.convertGameEntityToGameDTO(updatedGame);
     }
 
     @Override

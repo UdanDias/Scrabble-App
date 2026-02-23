@@ -9,7 +9,7 @@ public interface GameService {
     void addGame(GameDTO gameDTO);
     void addByeGame(String playerId, LocalDate gameDate);
     void deleteGame(String gameId);
-    void updateGame(String gameId,GameDTO gameDTO);
+    GameDTO updateGame(String gameId,GameDTO gameDTO);
     GameDTO getSelectedGame(String gameId);
     List<GameDTO> getAllGames();
 }
