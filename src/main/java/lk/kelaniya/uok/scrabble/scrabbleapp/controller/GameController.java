@@ -79,7 +79,7 @@ public class GameController {
         }
         try {
             GameDTO updatedGame = gameService.updateGame(gameId,gameDTO);
-            return new ResponseEntity<>(HttpStatus.OK);
+            return new ResponseEntity<>(updatedGame, HttpStatus.OK);
         }catch (GameNotFoundException e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
