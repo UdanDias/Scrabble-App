@@ -2,6 +2,7 @@ package lk.kelaniya.uok.scrabble.scrabbleapp.controller;
 
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PerformanceDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PlayerDTO;
+import lk.kelaniya.uok.scrabble.scrabbleapp.dto.RankedPlayerDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.exception.PerformanceNotFoundException;
 import lk.kelaniya.uok.scrabble.scrabbleapp.service.PerformanceService;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,15 @@ public class PerformanceController {
         } catch (PerformanceNotFoundException e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    @GetMapping("/getrankedplayers")
+    public ResponseEntity<List<RankedPlayerDTO>> getRankedPlayers() {
+        try {
+            return ResponseEntity.ok(performanceService.getPlayersOrderedByRank());
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);

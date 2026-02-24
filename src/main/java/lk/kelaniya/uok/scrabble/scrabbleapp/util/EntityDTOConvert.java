@@ -1,8 +1,6 @@
 package lk.kelaniya.uok.scrabble.scrabbleapp.util;
 
-import lk.kelaniya.uok.scrabble.scrabbleapp.dto.GameDTO;
-import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PerformanceDTO;
-import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PlayerDTO;
+import lk.kelaniya.uok.scrabble.scrabbleapp.dto.*;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.GameEntity;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.PerformanceEntity;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.PlayerEntity;
@@ -10,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
 import org.springframework.stereotype.Component;
-import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PlayerGameDTO;
 
 import java.util.List;
 
@@ -93,6 +90,18 @@ public class EntityDTOConvert {
             dto.setWinnerName(gameEntity.isGameTied() ? "Tied" : "");
         }
 
+        return dto;
+    }
+    public RankedPlayerDTO convertPerformanceEntityToRankedPlayerDTO(PerformanceEntity performanceEntity) {
+        RankedPlayerDTO dto = new RankedPlayerDTO();
+        dto.setPlayerId(performanceEntity.getPlayer().getPlayerId());
+        dto.setFirstName(performanceEntity.getPlayer().getFirstName());
+        dto.setLastName(performanceEntity.getPlayer().getLastName());
+        dto.setPlayerRank(performanceEntity.getPlayerRank());
+        dto.setTotalWins(performanceEntity.getTotalWins());
+        dto.setTotalGamesPlayed(performanceEntity.getTotalGamesPlayed());
+        dto.setAvgMargin(performanceEntity.getAvgMargin());
+        dto.setCumMargin(performanceEntity.getCumMargin());
         return dto;
     }
 
