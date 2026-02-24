@@ -1,9 +1,11 @@
 package lk.kelaniya.uok.scrabble.scrabbleapp.util;
 
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.*;
+import lk.kelaniya.uok.scrabble.scrabbleapp.dto.secure.UserDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.GameEntity;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.PerformanceEntity;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.PlayerEntity;
+import lk.kelaniya.uok.scrabble.scrabbleapp.entity.security.UserEntity;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
@@ -104,5 +106,10 @@ public class EntityDTOConvert {
         dto.setCumMargin(performanceEntity.getCumMargin());
         return dto;
     }
-
+    public UserDTO convertUserEntityToUserDTO(UserEntity userEntity) {
+        return modelMapper.map(userEntity,UserDTO.class);
+    }
+    public UserEntity convertUserDTOToUserEntity(UserDTO userDTO) {
+        return modelMapper.map(userDTO,UserEntity.class);
+    }
 }

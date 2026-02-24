@@ -23,4 +23,8 @@ public class UtilData {
     public static LocalDate generateTodayDate(){
         return LocalDate.now();
     }
+
+    public static String generateUserId(){
+        return "U/-"+UUID.randomUUID().toString();
+    }
 }
