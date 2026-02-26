@@ -171,4 +171,10 @@ public class GameServiceImpl implements GameService {
                 .map(entityDTOConvert::convertGameEntityToPlayerGameDTO)
                 .collect(Collectors.toList());
     }
+    public List<PlayerGameDTO> getGamesByRound(String roundId) {
+        List<GameEntity> games = gameDao.findByRound_RoundId(roundId);
+        return games.stream()
+                .map(entityDTOConvert::convertGameEntityToPlayerGameDTO)
+                .collect(Collectors.toList());
+    }
 }

@@ -128,4 +128,12 @@ public class GameController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    @GetMapping("/getgamesbyround")
+    public ResponseEntity<List<PlayerGameDTO>> getGamesByRound(@RequestParam("roundId") String roundId) {
+        try {
+            return ResponseEntity.ok(gameService.getGamesByRound(roundId));
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

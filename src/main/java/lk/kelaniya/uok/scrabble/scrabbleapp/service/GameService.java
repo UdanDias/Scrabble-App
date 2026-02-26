@@ -14,4 +14,5 @@ public interface GameService {
     GameDTO getSelectedGame(String gameId);
     List<GameDTO> getAllGames();
     List<PlayerGameDTO> getAllGamesByPlayerId(String playerId);
+    List<PlayerGameDTO> getGamesByRound(String roundId);
 }

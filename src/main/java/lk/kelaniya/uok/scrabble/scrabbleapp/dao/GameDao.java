@@ -10,4 +10,6 @@ import java.util.List;
 public interface GameDao extends JpaRepository<GameEntity, String> {
     @Query("SELECT g FROM GameEntity g WHERE g.player1.playerId = :playerId OR g.player2.playerId = :playerId")
     List<GameEntity> getAllGamesByPlayerId(@Param("playerId") String playerId);
+
+    List<GameEntity> findByRound_RoundId(String roundId);
 }
