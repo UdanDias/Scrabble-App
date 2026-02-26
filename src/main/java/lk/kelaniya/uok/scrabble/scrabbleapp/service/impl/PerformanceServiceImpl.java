@@ -24,8 +24,8 @@ public class PerformanceServiceImpl implements PerformanceService {
     private final EntityDTOConvert entityDTOConvert;
 
     @Override
-    public PerformanceDTO getSelectedPerformance(String performanceId) {
-        PerformanceEntity performance=performanceDao.findById(performanceId)
+    public PerformanceDTO getSelectedPerformance(String playerId) {
+        PerformanceEntity performance=performanceDao.findById(playerId)
                 .orElseThrow(()->new PerformanceNotFoundException("performance not found"));
         return entityDTOConvert.convertPerformanceEntityToPerformanceDTO(performance);
     }

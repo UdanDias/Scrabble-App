@@ -1,18 +1,14 @@
 package lk.kelaniya.uok.scrabble.scrabbleapp.controller;
 
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PerformanceDTO;
-import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PlayerDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.RankedPlayerDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.exception.PerformanceNotFoundException;
 import lk.kelaniya.uok.scrabble.scrabbleapp.service.PerformanceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -26,12 +22,12 @@ public class PerformanceController {
     }
 
     @GetMapping("/getselectedperformance")
-    public ResponseEntity<PerformanceDTO> getSelectedPerformance(@RequestParam ("performanceId")String performanceId){
-        if(performanceId==null){
+    public ResponseEntity<PerformanceDTO> getSelectedPerformance(@RequestParam ("playerId")String playerId){
+        if(playerId ==null){
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }try {
-            performanceService.getSelectedPerformance(performanceId);
-            return ResponseEntity.ok(performanceService.getSelectedPerformance(performanceId));
+            performanceService.getSelectedPerformance(playerId);
+            return ResponseEntity.ok(performanceService.getSelectedPerformance(playerId));
         }catch (PerformanceNotFoundException e){
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);

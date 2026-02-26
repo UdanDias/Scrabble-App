@@ -80,7 +80,7 @@ public class EntityDTOConvert {
             dto.setPlayer2Name(gameEntity.getPlayer2().getFirstName()
                     + " " + gameEntity.getPlayer2().getLastName());
         } else {
-            dto.setPlayer2Name("BYE");
+            dto.setPlayer2Name("");
         }
 
         // Winner

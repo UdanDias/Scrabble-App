@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface PerformanceService {
 
-    PerformanceDTO getSelectedPerformance(String performanceId);
+    PerformanceDTO getSelectedPerformance(String playerId);
     List<PerformanceDTO> getAllPerformances();
     List<RankedPlayerDTO> getPlayersOrderedByRank();
 }

@@ -9,7 +9,6 @@ import java.io.Serializable;
 @NoArgsConstructor
 @Data
 public class PerformanceDTO implements Serializable {
-    private String performanceId;
     private String playerId;
     private double totalWins;
     private int totalGamesPlayed;

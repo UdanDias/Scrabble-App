@@ -22,7 +22,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
+//@EnableMethodSecurity
 @RequiredArgsConstructor
 
 public class WebSecurityConfig {
@@ -59,10 +59,10 @@ public class WebSecurityConfig {
                 .sessionManagement(session ->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth ->
                         auth.requestMatchers("/api/v1/auth/**").permitAll()
-                                .anyRequest().permitAll()
+//                                .anyRequest().permitAll()
 //                                .requestMatchers("/api/v1/player/getallplayers").hasRole("ADMIN")
 //
-//                                .anyRequest().authenticated()
+                                .anyRequest().authenticated()
                                 );
         http.authenticationProvider(daoAuthenticationProvider());
         http.addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class);
