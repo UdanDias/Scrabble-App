@@ -120,6 +120,7 @@ public class EntityDTOConvert {
         UserDTO dto = new UserDTO();
 
         // User fields
+        dto.setUserId(userEntity.getUserId());
         dto.setEmail(userEntity.getEmail());
         dto.setRole(userEntity.getRole());
         // don't map password back for security
@@ -127,6 +128,7 @@ public class EntityDTOConvert {
         // Player fields from nested player entity
         PlayerEntity player = userEntity.getPlayer();
         if (player != null) {
+            dto.setPlayerId(player.getPlayerId());
             dto.setFirstName(player.getFirstName());
             dto.setLastName(player.getLastName());
             dto.setAge(player.getAge());
@@ -136,6 +138,7 @@ public class EntityDTOConvert {
             dto.setAddress(player.getAddress());
             dto.setFaculty(player.getFaculty());
             dto.setAcademicLevel(player.getAcademicLevel());
+            dto.setAccountCreatedDate(player.getAccountCreatedDate());
         }
 
         return dto;

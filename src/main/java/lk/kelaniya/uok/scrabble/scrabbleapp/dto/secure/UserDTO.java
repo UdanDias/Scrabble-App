@@ -35,11 +35,13 @@ import java.time.LocalDate;
 @Data
 public class UserDTO implements Serializable {
     // User fields
+    private String userId;
     private String email;
     private String password;
     private Role role;
 
     // Player fields
+    private String playerId;
     private String firstName;
     private String lastName;
     private int age;
@@ -50,4 +52,6 @@ public class UserDTO implements Serializable {
     private String address;
     private String faculty;
     private String academicLevel;
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate accountCreatedDate;
 }
