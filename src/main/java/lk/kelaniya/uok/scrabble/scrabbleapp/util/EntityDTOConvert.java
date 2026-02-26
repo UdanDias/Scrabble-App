@@ -112,4 +112,7 @@ public class EntityDTOConvert {
     public UserEntity convertUserDTOToUserEntity(UserDTO userDTO) {
         return modelMapper.map(userDTO,UserEntity.class);
     }
+    public List<UserDTO> convertUserEntityListToUserDTOList(List<UserEntity> userEntityList) {
+        return modelMapper.map(userEntityList, new TypeToken<List<UserDTO>>(){}.getType());
+    }
 }

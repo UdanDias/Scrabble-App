@@ -24,6 +24,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -34,29 +36,13 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final PlayerDao playerDao;
+    private final EntityDTOConvert entityDTOConvert;
 
     // ✅ Add separately with @PersistenceContext
     @PersistenceContext
     private EntityManager entityManager;  // not final
 
-//    @Override
-//    public JWTAuthResponse signIn(SignIn signIn) {
-//         authenticationManager.authenticate(
-//                 new UsernamePasswordAuthenticationToken(signIn.getEmail(), signIn.getPassword()));
-//        var userByEmail = userDao.findByEmail(signIn.getEmail()).orElseThrow(() -> new UsernameNotFoundException("User not found"));
-//        var generateToken=jwtutils.generateToken(userByEmail.getEmail(),userByEmail.getAuthorities());
-//        return JWTAuthResponse.builder().token(generateToken).build();
-//    }
 
-
-//    @Override
-//    public JWTAuthResponse signUp(UserDTO userDTO) {
-//        userDTO.setUserId(UtilData.generateUserId());
-//        userDTO.setPassword(passwordEncoder.encode(userDTO.getPassword()));
-//        var savedUser = userDao.save(entityDTOConvert.convertUserDTOToUserEntity(userDTO));
-//        var generatedToken = jwtutils.generateToken(savedUser.getEmail(), savedUser.getAuthorities());
-//        return JWTAuthResponse.builder().token(generatedToken).build();
-//    }
 @Override
 public JWTAuthResponse signIn(SignIn signIn) {
     authenticationManager.authenticate(
@@ -125,5 +111,71 @@ public JWTAuthResponse signIn(SignIn signIn) {
                 savedUser.getAuthorities(),
                 savedUser.getPlayer().getPlayerId());
         return JWTAuthResponse.builder().token(generatedToken).build();
+    }
+
+    @Override
+    public UserDTO getSelectedUserById(String userId) {
+        UserEntity user = userDao.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with ID: " + userId));
+        return entityDTOConvert.convertUserEntityToUserDTO(user);
+    }
+
+    @Override
+    public List<UserDTO> getAllUsers() {
+        return entityDTOConvert.convertUserEntityListToUserDTOList(userDao.findAll());
+    }
+
+    @Override
+    public UserDTO updateUser(String userId, UserDTO userDTO) {
+        UserEntity user = userDao.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with ID: " + userId));
+
+        user.setFirstName(userDTO.getFirstName());
+        user.setLastName(userDTO.getLastName());
+        user.setEmail(userDTO.getEmail());
+        user.setRole(userDTO.getRole());
+
+        if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
+            // Only encode and save if the new password is different from the current one
+            if (!passwordEncoder.matches(userDTO.getPassword(), user.getPassword())) {
+                user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+            }
+        }
+
+        PlayerEntity player = user.getPlayer();
+        if (player != null) {
+            player.setFirstName(userDTO.getFirstName());
+            player.setLastName(userDTO.getLastName());
+            player.setAge(userDTO.getAge());
+            player.setGender(userDTO.getGender());
+            player.setDob(userDTO.getDob());
+            player.setEmail(userDTO.getEmail());
+            player.setPhone(userDTO.getPhone());
+            player.setAddress(userDTO.getAddress());
+            player.setFaculty(userDTO.getFaculty());
+            player.setAcademicLevel(userDTO.getAcademicLevel());
+            playerDao.save(player);
+        }
+
+        UserEntity updatedUser = userDao.save(user);
+        return entityDTOConvert.convertUserEntityToUserDTO(updatedUser);
+    }
+
+    @Override
+    public void deleteUser(String userId) {
+        UserEntity user = userDao.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with ID: " + userId));
+
+        PlayerEntity player = user.getPlayer();
+
+        // Delete user first to remove the FK reference to player
+        userDao.delete(user);
+        userDao.flush();
+
+        if (player != null) {
+            player.setDeleted(true);
+            player.setDeletedDate(LocalDate.now());
+            playerDao.save(player);
+        }
     }
 }
