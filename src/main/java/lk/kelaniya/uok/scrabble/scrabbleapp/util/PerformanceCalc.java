@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -56,47 +57,104 @@ public class PerformanceCalc {
         }
 
     }
+//    public void updateRanks() {
+//
+//        List<PerformanceEntity> performances = performanceDao.findAll();
+//
+//        // Sort by totalWins DESC, then avgMargin DESC (rounded to 2 decimals)
+//        performances.sort((p1, p2) -> {
+//            double wins1 = p1.getTotalWins() != null ? p1.getTotalWins() : 0.0;
+//            double wins2 = p2.getTotalWins() != null ? p2.getTotalWins() : 0.0;
+//
+//            int cmpWins = Double.compare(wins2, wins1);
+//            if (cmpWins != 0) {
+//                return cmpWins;
+//            }
+//
+//            double avg1 = p1.getAvgMargin() != null ? Math.round(p1.getAvgMargin() * 100.0) / 100.0 : 0.0;
+//            double avg2 = p2.getAvgMargin() != null ? Math.round(p2.getAvgMargin() * 100.0) / 100.0 : 0.0;
+//
+//            return Double.compare(avg2, avg1);
+//        });
+//
+//        int rank = 1;
+//        int sameRankCount = 1;
+//
+//        PerformanceEntity previous = null;
+//
+//        for (PerformanceEntity current : performances) {
+//
+//            double currentAvg = current.getAvgMargin() != null
+//                    ? Math.round(current.getAvgMargin() * 100.0) / 100.0
+//                    : 0.0;
+//            current.setAvgMargin(currentAvg);
+//
+//            if (previous != null) {
+//                double prevAvg = previous.getAvgMargin() != null
+//                        ? Math.round(previous.getAvgMargin() * 100.0) / 100.0
+//                        : 0.0;
+//
+//                double currentWins = current.getTotalWins() != null ? current.getTotalWins() : 0.0;
+//                double prevWins = previous.getTotalWins() != null ? previous.getTotalWins() : 0.0;
+//
+//                // use Double.compare instead of == for wrapper types
+//                if (Double.compare(currentWins, prevWins) == 0 &&
+//                        Double.compare(currentAvg, prevAvg) == 0) {
+//                    current.setPlayerRank(rank);
+//                    sameRankCount++;
+//                } else {
+//                    rank += sameRankCount;
+//                    current.setPlayerRank(rank);
+//                    sameRankCount = 1;
+//                }
+//            } else {
+//                current.setPlayerRank(rank);
+//            }
+//            performanceDao.save(current);
+//            previous = current;
+//        }
+//    }
     public void updateRanks() {
-
         List<PerformanceEntity> performances = performanceDao.findAll();
 
-        // Sort by totalWins DESC, then avgMargin DESC (rounded to 2 decimals)
-        performances.sort((p1, p2) -> {
+        // Separate players who have played from those who haven't
+        List<PerformanceEntity> playedGames = performances.stream()
+                .filter(p -> p.getTotalGamesPlayed() != null && p.getTotalGamesPlayed() > 0)
+                .collect(Collectors.toList());
+
+        List<PerformanceEntity> noGames = performances.stream()
+                .filter(p -> p.getTotalGamesPlayed() == null || p.getTotalGamesPlayed() == 0)
+                .collect(Collectors.toList());
+
+        // Sort only players who have played
+        playedGames.sort((p1, p2) -> {
             double wins1 = p1.getTotalWins() != null ? p1.getTotalWins() : 0.0;
             double wins2 = p2.getTotalWins() != null ? p2.getTotalWins() : 0.0;
 
             int cmpWins = Double.compare(wins2, wins1);
-            if (cmpWins != 0) {
-                return cmpWins;
-            }
+            if (cmpWins != 0) return cmpWins;
 
             double avg1 = p1.getAvgMargin() != null ? Math.round(p1.getAvgMargin() * 100.0) / 100.0 : 0.0;
             double avg2 = p2.getAvgMargin() != null ? Math.round(p2.getAvgMargin() * 100.0) / 100.0 : 0.0;
-
             return Double.compare(avg2, avg1);
         });
 
+        // Assign ranks to players who have played
         int rank = 1;
         int sameRankCount = 1;
-
         PerformanceEntity previous = null;
 
-        for (PerformanceEntity current : performances) {
-
+        for (PerformanceEntity current : playedGames) {
             double currentAvg = current.getAvgMargin() != null
-                    ? Math.round(current.getAvgMargin() * 100.0) / 100.0
-                    : 0.0;
+                    ? Math.round(current.getAvgMargin() * 100.0) / 100.0 : 0.0;
             current.setAvgMargin(currentAvg);
 
             if (previous != null) {
                 double prevAvg = previous.getAvgMargin() != null
-                        ? Math.round(previous.getAvgMargin() * 100.0) / 100.0
-                        : 0.0;
-
+                        ? Math.round(previous.getAvgMargin() * 100.0) / 100.0 : 0.0;
                 double currentWins = current.getTotalWins() != null ? current.getTotalWins() : 0.0;
                 double prevWins = previous.getTotalWins() != null ? previous.getTotalWins() : 0.0;
 
-                // use Double.compare instead of == for wrapper types
                 if (Double.compare(currentWins, prevWins) == 0 &&
                         Double.compare(currentAvg, prevAvg) == 0) {
                     current.setPlayerRank(rank);
@@ -111,6 +169,14 @@ public class PerformanceCalc {
             }
             performanceDao.save(current);
             previous = current;
+        }
+
+        // Assign remaining ranks to players with no games — they always come last
+        int lastRank = rank + sameRankCount;
+        for (PerformanceEntity noGamePlayer : noGames) {
+            noGamePlayer.setPlayerRank(lastRank);
+            performanceDao.save(noGamePlayer);
+            lastRank++;
         }
     }
     public void updateBothPlayersPerformance(PerformanceEntity player1Perf, PerformanceEntity player2Perf, GameDTO gameDTO) {

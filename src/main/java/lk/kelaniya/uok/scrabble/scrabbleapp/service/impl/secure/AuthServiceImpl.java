@@ -15,6 +15,7 @@ import lk.kelaniya.uok.scrabble.scrabbleapp.entity.security.UserEntity;
 import lk.kelaniya.uok.scrabble.scrabbleapp.security.jwt.JWTutils;
 import lk.kelaniya.uok.scrabble.scrabbleapp.service.secure.AuthService;
 import lk.kelaniya.uok.scrabble.scrabbleapp.util.EntityDTOConvert;
+import lk.kelaniya.uok.scrabble.scrabbleapp.util.PerformanceCalc;
 import lk.kelaniya.uok.scrabble.scrabbleapp.util.UtilData;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -37,6 +38,7 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final PlayerDao playerDao;
     private final EntityDTOConvert entityDTOConvert;
+    private final PerformanceCalc performanceCalc;
 
     // ✅ Add separately with @PersistenceContext
     @PersistenceContext
@@ -95,6 +97,7 @@ public JWTAuthResponse signIn(SignIn signIn) {
         entityManager.persist(player);
         entityManager.flush();
 
+        performanceCalc.updateRanks();
         // Create user
         UserEntity userEntity = new UserEntity();
         userEntity.setUserId(UtilData.generateUserId());
