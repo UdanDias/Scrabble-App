@@ -12,4 +12,9 @@ public interface GameDao extends JpaRepository<GameEntity, String> {
     List<GameEntity> getAllGamesByPlayerId(@Param("playerId") String playerId);
 
     List<GameEntity> findByRound_RoundId(String roundId);
+
+    // In your GameDao or a new query
+    @Query("SELECT DISTINCT g.player1.playerId FROM GameEntity g WHERE g.round.tournament.tournamentId = :tournamentId " +
+            "UNION SELECT DISTINCT g.player2.playerId FROM GameEntity g WHERE g.round.tournament.tournamentId = :tournamentId")
+    List<String> findPlayerIdsByTournamentId(@Param("tournamentId") String tournamentId);
 }

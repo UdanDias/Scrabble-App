@@ -58,4 +58,10 @@ public class PerformanceController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+
+    @GetMapping("/getrankedplayers/tournament")
+    public ResponseEntity<List<RankedPlayerDTO>> getPlayersByTournament(@RequestParam String tournamentId) {
+        return ResponseEntity.ok(performanceService.getPlayersOrderedByRankByTournament(tournamentId));
+    }
 }

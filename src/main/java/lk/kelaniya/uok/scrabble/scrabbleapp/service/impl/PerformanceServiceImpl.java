@@ -1,6 +1,7 @@
 package lk.kelaniya.uok.scrabble.scrabbleapp.service.impl;
 
 import jakarta.transaction.Transactional;
+import lk.kelaniya.uok.scrabble.scrabbleapp.dao.GameDao;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dao.PerformanceDao;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PerformanceDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PlayerDTO;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 public class PerformanceServiceImpl implements PerformanceService {
     private final PerformanceDao performanceDao;
     private final EntityDTOConvert entityDTOConvert;
+    private final GameDao gameDao;
 
     @Override
     public PerformanceDTO getSelectedPerformance(String playerId) {
@@ -39,6 +41,17 @@ public class PerformanceServiceImpl implements PerformanceService {
     public List<RankedPlayerDTO> getPlayersOrderedByRank() {
         List<PerformanceEntity> performances = performanceDao.getAllPerformancesOrderedByRank();
         return performances.stream()
+                .map(entityDTOConvert::convertPerformanceEntityToRankedPlayerDTO)
+                .collect(Collectors.toList());
+    }
+    public List<RankedPlayerDTO> getPlayersOrderedByRankByTournament(String tournamentId) {
+        List<PerformanceEntity> performances = performanceDao.getAllPerformancesOrderedByRank();
+
+        // Get all player IDs who played in this tournament
+        List<String> playerIdsInTournament = gameDao.findPlayerIdsByTournamentId(tournamentId);
+
+        return performances.stream()
+                .filter(p -> playerIdsInTournament.contains(p.getPlayerId()))
                 .map(entityDTOConvert::convertPerformanceEntityToRankedPlayerDTO)
                 .collect(Collectors.toList());
     }

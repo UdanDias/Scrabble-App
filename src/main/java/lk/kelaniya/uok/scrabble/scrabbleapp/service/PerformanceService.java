@@ -11,4 +11,5 @@ public interface PerformanceService {
     PerformanceDTO getSelectedPerformance(String playerId);
     List<PerformanceDTO> getAllPerformances();
     List<RankedPlayerDTO> getPlayersOrderedByRank();
+    List<RankedPlayerDTO> getPlayersOrderedByRankByTournament( String tournamentId);
 }
