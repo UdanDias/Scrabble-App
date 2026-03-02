@@ -13,4 +13,6 @@ public interface PerformanceDao extends JpaRepository<PerformanceEntity, String>
 //    List<PerformanceEntity> getAllPerformancesOrderedByRank();
 @Query("SELECT p FROM PerformanceEntity p JOIN PlayerEntity pl ON p.playerId = pl.playerId WHERE pl.deleted = false ORDER BY p.playerRank ASC")
 List<PerformanceEntity> getAllPerformancesOrderedByRank();
-}
+
+    @Query("SELECT p FROM PerformanceEntity p JOIN PlayerEntity pl ON p.playerId = pl.playerId WHERE pl.deleted = false")
+    List<PerformanceEntity> findAllActivePlayers();}

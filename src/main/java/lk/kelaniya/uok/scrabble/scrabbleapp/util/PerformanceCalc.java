@@ -115,7 +115,8 @@ public class PerformanceCalc {
 //        }
 //    }
     public void updateRanks() {
-        List<PerformanceEntity> performances = performanceDao.findAll();
+//        List<PerformanceEntity> performances = performanceDao.findAll();
+        List<PerformanceEntity> performances = performanceDao.findAllActivePlayers();
 
         // Separate players who have played from those who haven't
         List<PerformanceEntity> playedGames = performances.stream()
@@ -233,7 +234,8 @@ public class PerformanceCalc {
 
     public void reCalculateAllPerformances() {
         // reset all performances
-        List<PerformanceEntity> performanceEntityList = performanceDao.findAll();
+        List<PerformanceEntity> performanceEntityList = performanceDao.findAllActivePlayers();
+
         for (PerformanceEntity performance : performanceEntityList) {
             performance.setTotalGamesPlayed(0);
             performance.setAvgMargin(0.0);

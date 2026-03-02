@@ -125,7 +125,7 @@ public JWTAuthResponse signIn(SignIn signIn) {
 
     @Override
     public List<UserDTO> getAllUsers() {
-        return entityDTOConvert.convertUserEntityListToUserDTOList(userDao.findAll());
+        return entityDTOConvert.convertUserEntityListToUserDTOList(userDao.findAllActiveUsers());
     }
 
     @Override
