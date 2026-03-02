@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -19,6 +21,7 @@ public class PerformanceEntity {
     @OneToOne(optional = false)
     @MapsId
     @JoinColumn(name = "player_id",nullable = false, unique = true)
+    @NotFound(action = NotFoundAction.IGNORE)
     @ToString.Exclude
     private PlayerEntity player;
 

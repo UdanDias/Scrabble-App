@@ -41,13 +41,22 @@ public class PerformanceServiceImpl implements PerformanceService {
         return entityDTOConvert.convertPerformanceEntityListToPerformanceDTOList(performanceDao.findAll());
     }
 
-    @Override
-    public List<RankedPlayerDTO> getPlayersOrderedByRank() {
-        List<PerformanceEntity> performances = performanceDao.getAllPerformancesOrderedByRank();
-        return performances.stream()
-                .map(entityDTOConvert::convertPerformanceEntityToRankedPlayerDTO)
-                .collect(Collectors.toList());
-    }
+//    @Override
+//    public List<RankedPlayerDTO> getPlayersOrderedByRank() {
+//        List<PerformanceEntity> performances = performanceDao.getAllPerformancesOrderedByRank();
+//        return performances.stream()
+//                .map(entityDTOConvert::convertPerformanceEntityToRankedPlayerDTO)
+//                .collect(Collectors.toList());
+//    }
+        @Override
+        public List<RankedPlayerDTO> getPlayersOrderedByRank() {
+            List<PerformanceEntity> performances = performanceDao.getAllPerformancesOrderedByRank();
+            return performances.stream()
+                    .filter(p -> p.getPlayer() != null)
+                    .filter(p -> p.getTotalGamesPlayed() != null && p.getTotalGamesPlayed() > 0)
+                    .map(entityDTOConvert::convertPerformanceEntityToRankedPlayerDTO)
+                    .collect(Collectors.toList());
+        }
 //    public List<RankedPlayerDTO> getPlayersOrderedByRankByTournament(String tournamentId) {
 //        List<PerformanceEntity> performances = performanceDao.getAllPerformancesOrderedByRank();
 //
@@ -73,6 +82,7 @@ public class PerformanceServiceImpl implements PerformanceService {
 
         for (GameEntity game : tournamentGames) {
             if (game.isBye()) {
+                if (game.getPlayer1() == null) continue;
                 String pid = game.getPlayer1().getPlayerId();
                 TournamentPlayerStats stats = statsMap.getOrDefault(pid, new TournamentPlayerStats(pid, game.getPlayer1().getFirstName(), game.getPlayer1().getLastName()));
                 stats.gamesPlayed++;
