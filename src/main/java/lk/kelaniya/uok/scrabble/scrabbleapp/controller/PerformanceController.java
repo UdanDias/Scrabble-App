@@ -1,5 +1,6 @@
 package lk.kelaniya.uok.scrabble.scrabbleapp.controller;
 
+import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PairingDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PerformanceDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.RankedPlayerDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.exception.PerformanceNotFoundException;
@@ -63,6 +64,15 @@ public class PerformanceController {
     @GetMapping("/getrankedplayers/tournament")
     public ResponseEntity<List<RankedPlayerDTO>> getPlayersByTournament(@RequestParam String tournamentId) {
         return ResponseEntity.ok(performanceService.getPlayersOrderedByRankByTournament(tournamentId));
+    }
+    @GetMapping("/getswisspairing")
+    public ResponseEntity<List<PairingDTO>> getSwissPairings(@RequestParam String tournamentId) {
+        try {
+            return ResponseEntity.ok(performanceService.getSwissPairings(tournamentId));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
 }
