@@ -64,4 +64,5 @@ public class PerformanceController {
     public ResponseEntity<List<RankedPlayerDTO>> getPlayersByTournament(@RequestParam String tournamentId) {
         return ResponseEntity.ok(performanceService.getPlayersOrderedByRankByTournament(tournamentId));
     }
+
 }

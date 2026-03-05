@@ -1,5 +1,6 @@
 package lk.kelaniya.uok.scrabble.scrabbleapp.service;
 
+import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PairingDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PerformanceDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PlayerDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.RankedPlayerDTO;
@@ -12,4 +13,5 @@ public interface PerformanceService {
     List<PerformanceDTO> getAllPerformances();
     List<RankedPlayerDTO> getPlayersOrderedByRank();
     List<RankedPlayerDTO> getPlayersOrderedByRankByTournament( String tournamentId);
+    List<PairingDTO> getSwissPairings(String tournamentId);
 }
