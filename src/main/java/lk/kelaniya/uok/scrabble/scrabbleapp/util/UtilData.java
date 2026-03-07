@@ -35,4 +35,7 @@ public class UtilData {
     public static String generateRoundId(){
         return "R/-"+UUID.randomUUID().toString();
     }
+    public static String generateTeamId(){
+        return "TM/-"+UUID.randomUUID().toString();
+    }
 }

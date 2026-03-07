@@ -40,7 +40,7 @@ public class GameController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    // ✅ Fixed controller method
+
     @PostMapping("/addbyegame")
     public ResponseEntity<Void> addByeGame(@RequestBody ByeGameDTO byeGameDTO) {
         if (byeGameDTO.getPlayerId() == null || byeGameDTO.getGameDate() == null) {
