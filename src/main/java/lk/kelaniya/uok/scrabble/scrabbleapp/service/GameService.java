@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface GameService {
     void addGame(GameDTO gameDTO);
-    void addByeGame(String playerId, LocalDate gameDate,String roundId);
+    void addByeGame(String playerId, LocalDate gameDate,String roundId,int margin);
     void deleteGame(String gameId);
     GameDTO updateGame(String gameId,GameDTO gameDTO);
     GameDTO getSelectedGame(String gameId);

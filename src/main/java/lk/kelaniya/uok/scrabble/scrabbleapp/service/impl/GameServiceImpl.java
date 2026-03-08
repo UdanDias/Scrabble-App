@@ -79,7 +79,7 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
-    public void addByeGame(String playerId, LocalDate gameDate, String roundId) {
+    public void addByeGame(String playerId, LocalDate gameDate, String roundId,int margin) {
         PlayerEntity player = playerDao.findById(playerId)
                 .orElseThrow(() -> new PlayerNotFoundException("Player not found"));
 
@@ -89,7 +89,7 @@ public class GameServiceImpl implements GameService {
         gameEntity.setPlayer2(null);
         gameEntity.setScore1(0);
         gameEntity.setScore2(0);
-        gameEntity.setMargin(50);
+        gameEntity.setMargin(margin);
         gameEntity.setWinner(player);
         gameEntity.setGameDate(gameDate);
         gameEntity.setBye(true);
@@ -115,35 +115,55 @@ public class GameServiceImpl implements GameService {
 
     @Override
     public GameDTO updateGame(String gameId, GameDTO gameDTO) {
-        GameEntity gameEntity=gameDao.findById(gameId).orElseThrow(()->new GameNotFoundException("Game not found"));
-        PlayerEntity player1=playerDao.findById(gameDTO.getPlayer1Id())
-                        .orElseThrow(()->new PlayerNotFoundException("Player1 Not Found"));
-        PlayerEntity player2=playerDao.findById(gameDTO.getPlayer2Id())
-                        .orElseThrow(()->new PlayerNotFoundException("Player2 Not Found"));
-        gameEntity.setPlayer1(player1);
-        gameEntity.setPlayer2(player2);
-        gameEntity.setScore1(gameDTO.getScore1());
-        gameEntity.setScore2(gameDTO.getScore2());
-        gameEntity.setMargin(performanceCalc.calcMargin(gameDTO));
+        GameEntity gameEntity = gameDao.findById(gameId)
+                .orElseThrow(() -> new GameNotFoundException("Game not found"));
 
-        String winnerId= performanceCalc.calcWinner(gameDTO);
-        if(winnerId.equals(player1.getPlayerId())){
-            gameEntity.setWinner(player1);
-        }else if(winnerId.equals(player2.getPlayerId())){
-            gameEntity.setWinner(player2);
-        }else{
-            gameEntity.setWinner(null);
+        PlayerEntity player1 = playerDao.findById(gameDTO.getPlayer1Id())
+                .orElseThrow(() -> new PlayerNotFoundException("Player1 Not Found"));
+
+        // ✅ Only fetch player2 if it exists
+        PlayerEntity player2 = null;
+        if (gameDTO.getPlayer2Id() != null && !gameDTO.getPlayer2Id().isEmpty()) {
+            player2 = playerDao.findById(gameDTO.getPlayer2Id())
+                    .orElseThrow(() -> new PlayerNotFoundException("Player2 Not Found"));
         }
+
+        gameEntity.setPlayer1(player1);
+        gameEntity.setPlayer2(player2);  // null for bye games
+
+        // ✅ Only calc scores/winner if it's a normal game
+        if (player2 != null) {
+            gameEntity.setScore1(gameDTO.getScore1());
+            gameEntity.setScore2(gameDTO.getScore2());
+            gameEntity.setMargin(performanceCalc.calcMargin(gameDTO));
+            gameEntity.setGameTied(gameDTO.getScore1() == gameDTO.getScore2());
+
+            String winnerId = performanceCalc.calcWinner(gameDTO);
+            if (winnerId.equals(player1.getPlayerId())) {
+                gameEntity.setWinner(player1);
+            } else if (winnerId.equals(player2.getPlayerId())) {
+                gameEntity.setWinner(player2);
+            } else {
+                gameEntity.setWinner(null);
+            }
+        } else {
+
+            gameEntity.setMargin(gameDTO.getMargin());
+            gameEntity.setWinner(player1);
+            gameEntity.setBye(true);
+            gameEntity.setGameTied(false);
+        }
+
         gameEntity.setGameDate(gameDTO.getGameDate());
 
-        // add this before gameDao.save(gameEntity) in updateGame
         if (gameDTO.getRoundId() != null && !gameDTO.getRoundId().isEmpty()) {
             RoundEntity round = roundDao.findById(gameDTO.getRoundId())
                     .orElseThrow(() -> new RoundNotFoundException("Round not found"));
             gameEntity.setRound(round);
         } else {
-            gameEntity.setRound(null); // allow removing a game from a round
+            gameEntity.setRound(null);
         }
+
         GameEntity updatedGame = gameDao.save(gameEntity);
         performanceCalc.reCalculateAllPerformances();
         return entityDTOConvert.convertGameEntityToGameDTO(updatedGame);
