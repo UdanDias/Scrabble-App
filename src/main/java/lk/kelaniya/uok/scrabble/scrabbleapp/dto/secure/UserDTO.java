@@ -1,7 +1,7 @@
 package lk.kelaniya.uok.scrabble.scrabbleapp.dto.secure;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import lk.kelaniya.uok.scrabble.scrabbleapp.dto.Role;
+import lk.kelaniya.uok.scrabble.scrabbleapp.dto.enums.Role;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,7 +10,7 @@ import java.io.Serializable;
 import java.time.LocalDate;
 
 //
-//import lk.kelaniya.uok.scrabble.scrabbleapp.dto.Role;
+//import lk.kelaniya.uok.scrabble.scrabbleapp.dto.enums.Role;
 //import lombok.AllArgsConstructor;
 //import lombok.Data;
 //import lombok.Getter;
