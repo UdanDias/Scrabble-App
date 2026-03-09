@@ -13,10 +13,15 @@ import java.util.List;
 @Entity
 @Table(name = "round")
 public class RoundEntity {
+
     @Id
     private String roundId;
+
     private int roundNumber;
 
+    // ── NEW: admin marks this true when all games for the round are entered ──
+    @Column(nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
+    private boolean completed = false;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "tournament_id", nullable = false)

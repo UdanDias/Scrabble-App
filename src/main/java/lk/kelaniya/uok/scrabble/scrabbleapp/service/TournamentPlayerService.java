@@ -6,19 +6,23 @@ import java.util.List;
 
 public interface TournamentPlayerService {
 
-    /** Register an existing player to a tournament */
     TournamentPlayerDTO registerPlayer(String tournamentId, String playerId);
 
-    /** Remove a player registration from a tournament */
     void removePlayer(String tournamentPlayerId);
 
-    /** Get all registered players for a given tournament */
     List<TournamentPlayerDTO> getPlayersByTournament(String tournamentId);
 
     /**
-     * Check all players registered in "Mini Tournament Uok".
-     * Any player who has NOT played in 3 consecutive rounds is marked INACTIVE.
-     * Call this after every game is added/deleted.
+     * Marks a round as completed.
+     * If the round belongs to "Mini Tournament Uok", applies a -50 margin penalty
+     * and +1 gamesPlayed to every registered player who did NOT appear in any game
+     * in that round, then recalculates all ranks.
+     */
+    void completeRound(String roundId);
+
+    /**
+     * Checks activity status (ACTIVE/INACTIVE) based on last 3 consecutive rounds.
+     * Called after every game mutation.
      */
     void checkAndUpdateInactivePlayersForMiniTournament();
 }

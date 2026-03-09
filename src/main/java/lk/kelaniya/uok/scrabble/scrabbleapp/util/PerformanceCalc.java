@@ -2,15 +2,21 @@ package lk.kelaniya.uok.scrabble.scrabbleapp.util;
 
 import lk.kelaniya.uok.scrabble.scrabbleapp.dao.GameDao;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dao.PerformanceDao;
+import lk.kelaniya.uok.scrabble.scrabbleapp.dao.RoundDao;
+import lk.kelaniya.uok.scrabble.scrabbleapp.dao.TournamentPlayerDao;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.GameDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PerformanceDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.GameEntity;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.PerformanceEntity;
+import lk.kelaniya.uok.scrabble.scrabbleapp.entity.RoundEntity;
+import lk.kelaniya.uok.scrabble.scrabbleapp.entity.TournamentPlayerEntity;
 import lk.kelaniya.uok.scrabble.scrabbleapp.exception.PlayerNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
@@ -19,6 +25,9 @@ public class PerformanceCalc {
     private final PerformanceDao performanceDao;
     private final GameDao gameDao;
     private final EntityDTOConvert entityDTOConvert;
+    // Add to PerformanceCalc fields:
+    private final TournamentPlayerDao tournamentPlayerDao;
+    private final RoundDao roundDao;
 
     public String calcWinner(GameDTO gameDTO) {
         String winnerId="";
@@ -267,6 +276,7 @@ public class PerformanceCalc {
 
             updateBothPlayersPerformance(player1Perf, player2Perf, gameDTO);
         }
+        applyAbsencePenaltiesForMiniTournament();
         updateRanks();
     }
     public void applyByePerformance(PerformanceEntity performance) {
@@ -279,6 +289,47 @@ public class PerformanceCalc {
         performanceDao.save(performance);
     }
 
+
+    private void applyAbsencePenaltiesForMiniTournament() {
+        // Find Mini Tournament Uok
+        List<TournamentPlayerEntity> registrations =
+                tournamentPlayerDao.findByTournamentName("Mini Tournament Uok");
+        if (registrations.isEmpty()) return;
+
+        String tournamentId = registrations.get(0).getTournamentId();
+
+        // Only process completed rounds
+        List<RoundEntity> completedRounds = roundDao
+                .findByTournament_TournamentIdOrderByRoundNumberAsc(tournamentId)
+                .stream()
+                .filter(RoundEntity::isCompleted)
+                .collect(Collectors.toList());
+
+        for (RoundEntity round : completedRounds) {
+            // Collect who played in this round
+            Set<String> playedInRound = new HashSet<>();
+            for (GameEntity game : round.getGames()) {
+                if (game.getPlayer1() != null) playedInRound.add(game.getPlayer1().getPlayerId());
+                if (game.getPlayer2() != null) playedInRound.add(game.getPlayer2().getPlayerId());
+            }
+
+            // Apply -50 penalty to anyone registered who didn't play
+            for (TournamentPlayerEntity reg : registrations) {
+                if (playedInRound.contains(reg.getPlayerId())) continue;
+
+                PerformanceEntity perf = performanceDao.findById(reg.getPlayerId())
+                        .orElse(null);
+                if (perf == null) continue;
+
+                perf.setTotalGamesPlayed(perf.getTotalGamesPlayed() + 1);
+                perf.setCumMargin(perf.getCumMargin() - 50);
+                perf.setAvgMargin(
+                        Math.round((double) perf.getCumMargin() / perf.getTotalGamesPlayed() * 100.0) / 100.0
+                );
+                performanceDao.save(perf);
+            }
+        }
+    }
 
 
 }

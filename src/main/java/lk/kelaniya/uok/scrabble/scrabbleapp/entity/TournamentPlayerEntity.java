@@ -17,16 +17,15 @@ import lombok.NoArgsConstructor;
 public class TournamentPlayerEntity {
 
     @Id
-    private String tournamentPlayerId;          // generated UUID / custom ID
+    private String tournamentPlayerId;
 
-    // ── Denormalised columns (as requested) ──────────────────────────────────
-    @Column(nullable = false)
+    @Column(name = "tournament_id", nullable = false)
     private String tournamentId;
 
     @Column(nullable = false)
     private String tournamentName;
 
-    @Column(nullable = false)
+    @Column(name = "player_id", nullable = false)
     private String playerId;
 
     @Column(nullable = false)
@@ -35,17 +34,9 @@ public class TournamentPlayerEntity {
     @Column(nullable = false)
     private String lastName;
 
-    // ── Activity status ───────────────────────────────────────────────────────
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PlayerActivityStatus activityStatus = PlayerActivityStatus.ACTIVE;
 
-    // ── JPA relationships (for queries; not returned directly to frontend) ──
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tournament_id", insertable = false, updatable = false)
-    private TournamentEntity tournament;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "player_id", insertable = false, updatable = false)
-    private PlayerEntity player;
+    // ← NO @ManyToOne relationships here at all
 }

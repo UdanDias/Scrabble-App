@@ -10,7 +10,9 @@ import java.io.Serializable;
 @NoArgsConstructor
 @Data
 public class RoundDTO implements Serializable {
+
     private String roundId;
-    private String tournamentId;
     private int roundNumber;
+    private boolean completed;       // ← NEW: frontend sends true when admin marks round complete
+    private String tournamentId;
 }
