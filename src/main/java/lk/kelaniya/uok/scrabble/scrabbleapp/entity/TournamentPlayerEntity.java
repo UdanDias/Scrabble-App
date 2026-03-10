@@ -37,6 +37,7 @@ public class TournamentPlayerEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PlayerActivityStatus activityStatus = PlayerActivityStatus.ACTIVE;
-
+    @Column(nullable = false)
+    private int registeredFromRoundNumber = 1;
     // ← NO @ManyToOne relationships here at all
 }

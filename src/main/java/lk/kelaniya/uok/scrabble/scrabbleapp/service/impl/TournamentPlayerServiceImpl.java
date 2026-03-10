@@ -66,6 +66,16 @@ public class TournamentPlayerServiceImpl implements TournamentPlayerService {
         entity.setFirstName(player.getFirstName());
         entity.setLastName(player.getLastName());
         entity.setActivityStatus(PlayerActivityStatus.ACTIVE);
+        // Find the next upcoming round number for this tournament
+        int currentRoundNumber = roundDao
+                .findByTournament_TournamentIdOrderByRoundNumberAsc(tournamentId)
+                .stream()
+                .filter(r -> !r.isCompleted())
+                .mapToInt(RoundEntity::getRoundNumber)
+                .min()
+                .orElse(1);
+
+        entity.setRegisteredFromRoundNumber(currentRoundNumber);
 
         return toDTO(tournamentPlayerDao.save(entity));
     }

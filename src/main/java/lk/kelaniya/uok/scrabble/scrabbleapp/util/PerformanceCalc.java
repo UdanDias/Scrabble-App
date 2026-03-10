@@ -306,6 +306,7 @@ public class PerformanceCalc {
                 .collect(Collectors.toList());
 
         for (RoundEntity round : completedRounds) {
+
             // Collect who played in this round
             Set<String> playedInRound = new HashSet<>();
             for (GameEntity game : round.getGames()) {
@@ -315,6 +316,7 @@ public class PerformanceCalc {
 
             // Apply -50 penalty to anyone registered who didn't play
             for (TournamentPlayerEntity reg : registrations) {
+                if (round.getRoundNumber() < reg.getRegisteredFromRoundNumber()) continue;
                 if (playedInRound.contains(reg.getPlayerId())) continue;
 
                 PerformanceEntity perf = performanceDao.findById(reg.getPlayerId())
