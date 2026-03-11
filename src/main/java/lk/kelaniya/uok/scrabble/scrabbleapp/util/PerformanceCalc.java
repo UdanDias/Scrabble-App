@@ -7,12 +7,15 @@ import lk.kelaniya.uok.scrabble.scrabbleapp.dao.TournamentPlayerDao;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.GameDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.GameEntity;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.PerformanceEntity;
+import lk.kelaniya.uok.scrabble.scrabbleapp.entity.RoundEntity;
 import lk.kelaniya.uok.scrabble.scrabbleapp.exception.PlayerNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
@@ -20,6 +23,7 @@ import java.util.stream.Collectors;
 public class PerformanceCalc {
 
     private static final String MINI_TOURNAMENT_NAME = "Mini Tournament Uok";
+    private static  final double AbsenceEloDeduct = 20.0;
 
     private final PerformanceDao performanceDao;
     private final GameDao gameDao;
@@ -189,7 +193,9 @@ public class PerformanceCalc {
             performanceDao.save(player1Perf);
             performanceDao.save(player2Perf);
         }
-
+        if (miniTournamentId != null) {
+            applyAbsencePenaltiesForMiniTournament(miniTournamentId);
+        }
         // ── Step 3: Update ranks ──────────────────────────────────────────────
         updateRanks(miniTournamentId);
     }
@@ -298,5 +304,36 @@ public class PerformanceCalc {
             prev = curr;
         }
         return rank + (sorted.isEmpty() ? 0 : sameCount);
+    }
+    private void applyAbsencePenaltiesForMiniTournament(String miniTournamentId) {
+        List<RoundEntity> completedRounds = roundDao
+                .findByTournament_TournamentIdOrderByRoundNumberAsc(miniTournamentId)
+                .stream()
+                .filter(RoundEntity::isCompleted)
+                .collect(Collectors.toList());
+
+        for (RoundEntity round : completedRounds) {
+
+            // Collect all player IDs who actually played in this round
+            Set<String> playersWhoPlayed = new HashSet<>();
+            for (GameEntity game : round.getGames()) {
+                if (game.getPlayer1() != null) playersWhoPlayed.add(game.getPlayer1().getPlayerId());
+                if (game.getPlayer2() != null) playersWhoPlayed.add(game.getPlayer2().getPlayerId());
+            }
+
+            // Deduct 20 Elo from every registered player who did NOT play
+            tournamentPlayerDao.findByTournamentId(miniTournamentId).forEach(tp -> {
+                // Only penalize if they were registered before or on this round
+                if (tp.getRegisteredFromRoundNumber() <= round.getRoundNumber()
+                        && !playersWhoPlayed.contains(tp.getPlayerId())) {
+
+                    performanceDao.findById(tp.getPlayerId()).ifPresent(perf -> {
+                        double penalized = perf.getEloRating() - AbsenceEloDeduct;
+                        perf.setEloRating(penalized);
+                        performanceDao.save(perf);
+                    });
+                }
+            });
+        }
     }
 }
