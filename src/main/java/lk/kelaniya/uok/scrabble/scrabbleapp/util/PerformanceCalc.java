@@ -193,6 +193,7 @@ public class PerformanceCalc {
             performanceDao.save(player1Perf);
             performanceDao.save(player2Perf);
         }
+        System.out.println(">>> miniTournamentId resolved: " + miniTournamentId);
         if (miniTournamentId != null) {
             applyAbsencePenaltiesForMiniTournament(miniTournamentId);
         }
@@ -306,30 +307,42 @@ public class PerformanceCalc {
         return rank + (sorted.isEmpty() ? 0 : sameCount);
     }
     private void applyAbsencePenaltiesForMiniTournament(String miniTournamentId) {
+        System.out.println(">>> applyAbsencePenalties called for tournamentId: " + miniTournamentId);
+
         List<RoundEntity> completedRounds = roundDao
                 .findByTournament_TournamentIdOrderByRoundNumberAsc(miniTournamentId)
                 .stream()
                 .filter(RoundEntity::isCompleted)
                 .collect(Collectors.toList());
 
-        for (RoundEntity round : completedRounds) {
+        System.out.println(">>> completedRounds count: " + completedRounds.size());
 
-            // Collect all player IDs who actually played in this round
+        for (RoundEntity round : completedRounds) {
+            List<GameEntity> roundGames = gameDao.findByRound_RoundId(round.getRoundId());
+
+            System.out.println(">>> Round " + round.getRoundNumber() + " has " + roundGames.size() + " games");
+
             Set<String> playersWhoPlayed = new HashSet<>();
-            for (GameEntity game : round.getGames()) {
+            for (GameEntity game : roundGames) {
                 if (game.getPlayer1() != null) playersWhoPlayed.add(game.getPlayer1().getPlayerId());
                 if (game.getPlayer2() != null) playersWhoPlayed.add(game.getPlayer2().getPlayerId());
             }
 
-            // Deduct 20 Elo from every registered player who did NOT play
+            System.out.println(">>> Players who played: " + playersWhoPlayed);
+
             tournamentPlayerDao.findByTournamentId(miniTournamentId).forEach(tp -> {
-                // Only penalize if they were registered before or on this round
+                System.out.println(">>> Checking player: " + tp.getPlayerId() +
+                        " registeredFrom=" + tp.getRegisteredFromRoundNumber() +
+                        " roundNumber=" + round.getRoundNumber() +
+                        " played=" + playersWhoPlayed.contains(tp.getPlayerId()));
+
                 if (tp.getRegisteredFromRoundNumber() <= round.getRoundNumber()
                         && !playersWhoPlayed.contains(tp.getPlayerId())) {
 
                     performanceDao.findById(tp.getPlayerId()).ifPresent(perf -> {
-                        double penalized = perf.getEloRating() - AbsenceEloDeduct;
-                        perf.setEloRating(penalized);
+                        System.out.println(">>> Penalizing: " + tp.getPlayerId() +
+                                " from " + perf.getEloRating() + " to " + (perf.getEloRating() - AbsenceEloDeduct));
+                        perf.setEloRating(perf.getEloRating() - AbsenceEloDeduct);
                         performanceDao.save(perf);
                     });
                 }

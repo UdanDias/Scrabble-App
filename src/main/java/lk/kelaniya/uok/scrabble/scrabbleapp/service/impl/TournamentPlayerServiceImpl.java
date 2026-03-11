@@ -160,9 +160,10 @@ public class TournamentPlayerServiceImpl implements TournamentPlayerService {
                 completedRounds.size() - CONSECUTIVE_MISS_THRESHOLD, completedRounds.size());
 
         List<Set<String>> playersPerRound = lastThree.stream()
+                // ✅ Option B fix
                 .map(r -> {
                     Set<String> ids = new HashSet<>();
-                    for (GameEntity game : r.getGames()) {
+                    for (GameEntity game : gameDao.findByRound_RoundId(r.getRoundId())) {
                         if (game.getPlayer1() != null) ids.add(game.getPlayer1().getPlayerId());
                         if (game.getPlayer2() != null) ids.add(game.getPlayer2().getPlayerId());
                     }
