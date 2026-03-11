@@ -32,6 +32,7 @@ public class PlayerEntity {
     private String faculty;
     private String academicLevel;
     private LocalDate accountCreatedDate;
+    private String username;
 
     @OneToOne(mappedBy = "player", cascade = CascadeType.ALL , orphanRemoval = true)
     @ToString.Exclude

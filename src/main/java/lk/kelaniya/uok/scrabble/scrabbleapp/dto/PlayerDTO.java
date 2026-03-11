@@ -27,6 +27,7 @@ public class PlayerDTO implements Serializable {
     private String academicLevel;
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate accountCreatedDate;
+    private String username;
 
 
 

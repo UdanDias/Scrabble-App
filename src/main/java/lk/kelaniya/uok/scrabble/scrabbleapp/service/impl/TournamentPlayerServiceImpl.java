@@ -22,6 +22,7 @@ import lk.kelaniya.uok.scrabble.scrabbleapp.util.UtilData;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -66,6 +67,7 @@ public class TournamentPlayerServiceImpl implements TournamentPlayerService {
         entity.setFirstName(player.getFirstName());
         entity.setLastName(player.getLastName());
         entity.setActivityStatus(PlayerActivityStatus.ACTIVE);
+        entity.setUsername(player.getUsername());
         // Find the next upcoming round number for this tournament
         int currentRoundNumber = roundDao
                 .findByTournament_TournamentIdOrderByRoundNumberAsc(tournamentId)
@@ -170,8 +172,26 @@ public class TournamentPlayerServiceImpl implements TournamentPlayerService {
 
         for (TournamentPlayerEntity registration : registrations) {
             String pid = registration.getPlayerId();
-            boolean missedAll3 = playersPerRound.stream()
+            int registeredFrom = registration.getRegisteredFromRoundNumber();
+
+            // Only consider rounds that happened AFTER the player registered
+            List<Set<String>> relevantRounds = new ArrayList<>();
+            for (int i = 0; i < lastThree.size(); i++) {
+                if (lastThree.get(i).getRoundNumber() >= registeredFrom) {
+                    relevantRounds.add(playersPerRound.get(i));
+                }
+            }
+
+            // Not enough rounds since registration to trigger inactivity
+            if (relevantRounds.size() < CONSECUTIVE_MISS_THRESHOLD) {
+                registration.setActivityStatus(PlayerActivityStatus.ACTIVE);
+                tournamentPlayerDao.save(registration);
+                continue;
+            }
+
+            boolean missedAll3 = relevantRounds.stream()
                     .noneMatch(roundPlayers -> roundPlayers.contains(pid));
+
             registration.setActivityStatus(
                     missedAll3 ? PlayerActivityStatus.INACTIVE : PlayerActivityStatus.ACTIVE
             );

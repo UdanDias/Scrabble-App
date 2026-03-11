@@ -39,5 +39,6 @@ public class TournamentPlayerEntity {
     private PlayerActivityStatus activityStatus = PlayerActivityStatus.ACTIVE;
     @Column(nullable = false)
     private int registeredFromRoundNumber = 1;
+    private String username;
     // ← NO @ManyToOne relationships here at all
 }

@@ -44,6 +44,7 @@ public class PlayerServiceImpl implements PlayerService {
         performanceEntity.setCumMargin(0);
         performanceEntity.setAvgMargin(0.0);
         performanceEntity.setPlayerRank(0);
+        performanceEntity.setEloRating(1200.0);
 
         playerEntity.setPerformance(performanceEntity);
         playerDao.save(playerEntity);
@@ -83,6 +84,7 @@ public void deletePlayer(String playerId) {
         playerEntity.setAddress(playerDTO.getAddress());
         playerEntity.setFaculty(playerDTO.getFaculty());
         playerEntity.setAcademicLevel(playerDTO.getAcademicLevel());
+        playerEntity.setUsername(playerDTO.getUsername());
 
     }
 

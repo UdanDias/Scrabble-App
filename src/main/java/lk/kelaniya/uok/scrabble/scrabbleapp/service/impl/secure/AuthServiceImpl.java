@@ -97,7 +97,7 @@ public JWTAuthResponse signIn(SignIn signIn) {
         entityManager.persist(player);
         entityManager.flush();
 
-        performanceCalc.updateRanks();
+        performanceCalc.updateRanks(null);
         // Create user
         UserEntity userEntity = new UserEntity();
         userEntity.setUserId(UtilData.generateUserId());
