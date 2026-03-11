@@ -100,6 +100,7 @@ public class EntityDTOConvert {
         dto.setPlayerId(performanceEntity.getPlayer().getPlayerId());
         dto.setFirstName(performanceEntity.getPlayer().getFirstName());
         dto.setLastName(performanceEntity.getPlayer().getLastName());
+        dto.setUsername(performanceEntity.getPlayer().getUsername());
         dto.setPlayerRank(performanceEntity.getPlayerRank());
         dto.setTotalWins(performanceEntity.getTotalWins());
         dto.setTotalGamesPlayed(performanceEntity.getTotalGamesPlayed());

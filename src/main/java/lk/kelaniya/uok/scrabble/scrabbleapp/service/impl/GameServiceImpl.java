@@ -17,6 +17,7 @@ import lk.kelaniya.uok.scrabble.scrabbleapp.exception.InputMarginIncorrectExcept
 import lk.kelaniya.uok.scrabble.scrabbleapp.exception.PlayerNotFoundException;
 import lk.kelaniya.uok.scrabble.scrabbleapp.exception.RoundNotFoundException;
 import lk.kelaniya.uok.scrabble.scrabbleapp.service.GameService;
+import lk.kelaniya.uok.scrabble.scrabbleapp.service.TournamentPlayerService;
 import lk.kelaniya.uok.scrabble.scrabbleapp.util.EntityDTOConvert;
 import lk.kelaniya.uok.scrabble.scrabbleapp.util.PerformanceCalc;
 import lk.kelaniya.uok.scrabble.scrabbleapp.util.UtilData;
@@ -40,6 +41,7 @@ public class GameServiceImpl implements GameService {
     private final EntityDTOConvert entityDTOConvert;
     private final PlayerDao playerDao;
     private final RoundDao roundDao;
+    private final TournamentPlayerService tournamentPlayerService;
 
     @Override
     public void addGame(GameDTO gameDTO)  {
@@ -76,6 +78,7 @@ public class GameServiceImpl implements GameService {
         }
         gameDao.save(gameEntity);
         performanceCalc.reCalculateAllPerformances();
+        tournamentPlayerService.checkAndUpdateInactivePlayersForMiniTournament();
     }
 
     @Override
@@ -104,6 +107,7 @@ public class GameServiceImpl implements GameService {
 
         gameDao.save(gameEntity);
         performanceCalc.reCalculateAllPerformances();
+        tournamentPlayerService.checkAndUpdateInactivePlayersForMiniTournament();
     }
 
     @Override
@@ -111,6 +115,7 @@ public class GameServiceImpl implements GameService {
         GameEntity gameEntity=gameDao.findById(gameId).orElseThrow(()-> new GameNotFoundException("Game not found"));
         gameDao.delete(gameEntity);
         performanceCalc.reCalculateAllPerformances();
+        tournamentPlayerService.checkAndUpdateInactivePlayersForMiniTournament();
     }
 
     @Override
@@ -166,6 +171,7 @@ public class GameServiceImpl implements GameService {
 
         GameEntity updatedGame = gameDao.save(gameEntity);
         performanceCalc.reCalculateAllPerformances();
+        tournamentPlayerService.checkAndUpdateInactivePlayersForMiniTournament();
         return entityDTOConvert.convertGameEntityToGameDTO(updatedGame);
     }
 

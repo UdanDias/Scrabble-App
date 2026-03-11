@@ -23,4 +23,5 @@ public class PairingDTO implements Serializable {
 
     private boolean bye;
     private int groupNumber;
+    private String username;
 }

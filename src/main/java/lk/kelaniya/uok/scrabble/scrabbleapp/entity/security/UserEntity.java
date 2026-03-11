@@ -1,7 +1,7 @@
 package lk.kelaniya.uok.scrabble.scrabbleapp.entity.security;
 
 import jakarta.persistence.*;
-import lk.kelaniya.uok.scrabble.scrabbleapp.dto.Role;
+import lk.kelaniya.uok.scrabble.scrabbleapp.dto.enums.Role;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.PlayerEntity;
 import lombok.AllArgsConstructor;
 import lombok.Data;

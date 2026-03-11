@@ -8,5 +8,9 @@ import java.util.List;
 
 @Repository
 public interface RoundDao extends JpaRepository<RoundEntity, String> {
+
     List<RoundEntity> findByTournament_TournamentId(String tournamentId);
+
+    // Used by inactivity check and penalty logic
+    List<RoundEntity> findByTournament_TournamentIdOrderByRoundNumberAsc(String tournamentId);
 }

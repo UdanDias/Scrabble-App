@@ -18,4 +18,8 @@ public class RankedPlayerDTO implements Serializable {
     private Integer totalGamesPlayed;
     private Double avgMargin;
     private Integer cumMargin;
+    private String username;
+    private Double eloRating; // ✅ added — only meaningful for Mini Tournament Uok
+    private boolean provisional;
+    private Double previousEloRating;
 }

@@ -38,4 +38,9 @@ public class UtilData {
     public static String generateTeamId(){
         return "TM/-"+UUID.randomUUID().toString();
     }
+
+
+    public static String generateTournamentPlayerId() {
+        return "TP/-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
 }

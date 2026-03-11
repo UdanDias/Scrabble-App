@@ -28,6 +28,7 @@ public class GameController {
     public ResponseEntity<Void> addGame(@RequestBody GameDTO gameDTO){
         if(gameDTO==null){
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            
         }
         try {
             gameService.addGame(gameDTO);

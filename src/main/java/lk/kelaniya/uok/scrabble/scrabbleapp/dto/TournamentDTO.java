@@ -1,12 +1,11 @@
 package lk.kelaniya.uok.scrabble.scrabbleapp.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
+import lk.kelaniya.uok.scrabble.scrabbleapp.dto.enums.TournamentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
-import java.time.LocalDate;
 
 @AllArgsConstructor
 @NoArgsConstructor
