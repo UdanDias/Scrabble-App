@@ -19,8 +19,10 @@ public class TournamentPlayerEntity {
     @Id
     private String tournamentPlayerId;
 
-    @Column(name = "tournament_id", nullable = false)
-    private String tournamentId;
+    // ── Replaced plain String with proper relationship so cascade works ────────
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tournament_id", nullable = false)
+    private TournamentEntity tournament;
 
     @Column(nullable = false)
     private String tournamentName;
@@ -37,8 +39,9 @@ public class TournamentPlayerEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PlayerActivityStatus activityStatus = PlayerActivityStatus.ACTIVE;
+
     @Column(nullable = false)
     private int registeredFromRoundNumber = 1;
+
     private String username;
-    // ← NO @ManyToOne relationships here at all
 }

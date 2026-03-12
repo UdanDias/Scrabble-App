@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 public class PerformanceCalc {
 
     private static final String MINI_TOURNAMENT_NAME = "Mini Tournament Uok";
-    private static  final double AbsenceEloDeduct = 20.0;
+    private static final double AbsenceEloDeduct = 20.0;
 
     private final PerformanceDao performanceDao;
     private final GameDao gameDao;
@@ -122,12 +122,12 @@ public class PerformanceCalc {
                         ? g.getGameDate() : java.time.LocalDate.MIN))
                 .collect(Collectors.toList());
 
-        // Find Mini Tournament id once
+        // ── Find Mini Tournament id using tournament relationship ──────────────
         String miniTournamentId = tournamentPlayerDao
                 .findByTournamentName(MINI_TOURNAMENT_NAME)
                 .stream()
                 .findFirst()
-                .map(tp -> tp.getTournamentId())
+                .map(tp -> tp.getTournament().getTournamentId())  // ← fixed
                 .orElse(null);
 
         for (GameEntity game : gamesList) {
@@ -144,16 +144,15 @@ public class PerformanceCalc {
                 PerformanceEntity playerPerf = performanceDao.findById(game.getPlayer1().getPlayerId())
                         .orElseThrow(() -> new PlayerNotFoundException("Player not found"));
 
-                // ✅ Elo BEFORE stats update (provisional check uses pre-game count)
                 if (isMiniTournamentGame) {
                     double newRating = EloCalculator.calculateBye(
                             playerPerf.getEloRating(),
-                            playerPerf.getTotalGamesPlayed()  // ✅ provisional
+                            playerPerf.getTotalGamesPlayed()
                     );
                     playerPerf.setEloRating(newRating);
                 }
 
-                applyByePerformance(playerPerf); // increments gamesPlayed AFTER Elo
+                applyByePerformance(playerPerf);
                 continue;
             }
 
@@ -167,7 +166,6 @@ public class PerformanceCalc {
             PerformanceEntity player2Perf = performanceDao.findById(game.getPlayer2().getPlayerId())
                     .orElseThrow(() -> new PlayerNotFoundException("Player 2 not found"));
 
-            // ✅ Elo BEFORE stats update (provisional check uses pre-game count)
             if (isMiniTournamentGame) {
                 double scoreA = gameDTO.isGameTied() ? 0.5
                         : (gameDTO.getWinnerId() != null
@@ -180,24 +178,25 @@ public class PerformanceCalc {
                         player2Perf.getEloRating(),
                         scoreA,
                         scoreDiff,
-                        player1Perf.getTotalGamesPlayed(),  // ✅ provisional
-                        player2Perf.getTotalGamesPlayed()   // ✅ provisional
+                        player1Perf.getTotalGamesPlayed(),
+                        player2Perf.getTotalGamesPlayed()
                 );
 
                 player1Perf.setEloRating(newRatings[0]);
                 player2Perf.setEloRating(newRatings[1]);
             }
 
-            // Wins / margin stats AFTER Elo (gamesPlayed incremented here)
             updateBothPlayersPerformance(player1Perf, player2Perf, gameDTO);
 
             performanceDao.save(player1Perf);
             performanceDao.save(player2Perf);
         }
+
         System.out.println(">>> miniTournamentId resolved: " + miniTournamentId);
         if (miniTournamentId != null) {
             applyAbsencePenaltiesForMiniTournament(miniTournamentId);
         }
+
         // ── Step 3: Update ranks ──────────────────────────────────────────────
         updateRanks(miniTournamentId);
     }
@@ -229,13 +228,11 @@ public class PerformanceCalc {
                 .filter(p -> p.getTotalGamesPlayed() == null || p.getTotalGamesPlayed() == 0)
                 .collect(Collectors.toList());
 
-        // ── Mini Tournament: sort by Elo DESC ─────────────────────────────────
         miniWithGames.sort((a, b) -> Double.compare(
                 b.getEloRating() != null ? b.getEloRating() : EloCalculator.DEFAULT_RATING,
                 a.getEloRating() != null ? a.getEloRating() : EloCalculator.DEFAULT_RATING
         ));
 
-        // ── Others: sort by wins DESC, avgMargin DESC ─────────────────────────
         othersWithGames.sort((a, b) -> {
             int cmp = Double.compare(
                     b.getTotalWins() != null ? b.getTotalWins() : 0.0,
@@ -257,7 +254,6 @@ public class PerformanceCalc {
         }
     }
 
-    /** Assigns ranks to a pre-sorted list using Elo as the tiebreak key. */
     private int assignRanksElo(List<PerformanceEntity> sorted, int startRank) {
         int rank = startRank;
         int sameCount = 1;
@@ -280,7 +276,6 @@ public class PerformanceCalc {
         return rank + (sorted.isEmpty() ? 0 : sameCount);
     }
 
-    /** Assigns ranks to a pre-sorted list using wins+avgMargin as the tiebreak key. */
     private int assignRanksWins(List<PerformanceEntity> sorted, int startRank) {
         int rank = startRank;
         int sameCount = 1;
@@ -307,6 +302,7 @@ public class PerformanceCalc {
         }
         return rank + (sorted.isEmpty() ? 0 : sameCount);
     }
+
     private void applyAbsencePenaltiesForMiniTournament(String miniTournamentId) {
         System.out.println(">>> applyAbsencePenalties called for tournamentId: " + miniTournamentId);
 
@@ -341,7 +337,6 @@ public class PerformanceCalc {
                 if (tp.getRegisteredFromRoundNumber() <= round.getRoundNumber()
                         && !playersWhoPlayed.contains(tp.getPlayerId())) {
 
-                    // ✅ Skip penalty for inactive players
                     if (tp.getActivityStatus() == PlayerActivityStatus.INACTIVE) {
                         System.out.println(">>> Skipping penalty for INACTIVE player: " + tp.getPlayerId());
                         return;

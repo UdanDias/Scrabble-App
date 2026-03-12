@@ -1,6 +1,7 @@
 package lk.kelaniya.uok.scrabble.scrabbleapp.dto;
 
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.enums.TournamentStatus;
+import lk.kelaniya.uok.scrabble.scrabbleapp.dto.enums.TournamentType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,4 +15,5 @@ public class TournamentDTO implements Serializable {
     private String tournamentId;
     private String tournamentName;
     private TournamentStatus status;
+    private TournamentType tournamentType;
 }

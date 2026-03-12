@@ -26,6 +26,7 @@ public class TournamentServiceImpl implements TournamentService {
         entity.setTournamentId(UtilData.generateTournamentId());
         entity.setTournamentName(tournamentDTO.getTournamentName());
         entity.setStatus(tournamentDTO.getStatus());
+        entity.setTournamentType(tournamentDTO.getTournamentType()); // ← added
         tournamentDao.save(entity);
     }
 
@@ -64,6 +65,7 @@ public class TournamentServiceImpl implements TournamentService {
         dto.setTournamentId(entity.getTournamentId());
         dto.setTournamentName(entity.getTournamentName());
         dto.setStatus(entity.getStatus());
+        dto.setTournamentType(entity.getTournamentType()); // ← added
         return dto;
     }
 }

@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 @Transactional
 public class TournamentPlayerServiceImpl implements TournamentPlayerService {
 
-    private static final String MINI_TOURNAMENT_NAME      = "Mini Tournament Uok";
+    private static final String MINI_TOURNAMENT_NAME       = "Mini Tournament Uok";
     private static final int    CONSECUTIVE_MISS_THRESHOLD = 3;
 
     private final TournamentPlayerDao tournamentPlayerDao;
@@ -61,14 +61,14 @@ public class TournamentPlayerServiceImpl implements TournamentPlayerService {
 
         TournamentPlayerEntity entity = new TournamentPlayerEntity();
         entity.setTournamentPlayerId(UtilData.generateTournamentPlayerId());
-        entity.setTournamentId(tournamentId);
+        entity.setTournament(tournament);                          // ← was setTournamentId()
         entity.setTournamentName(tournament.getTournamentName());
         entity.setPlayerId(playerId);
         entity.setFirstName(player.getFirstName());
         entity.setLastName(player.getLastName());
         entity.setActivityStatus(PlayerActivityStatus.ACTIVE);
         entity.setUsername(player.getUsername());
-        // Find the next upcoming round number for this tournament
+
         int currentRoundNumber = roundDao
                 .findByTournament_TournamentIdOrderByRoundNumberAsc(tournamentId)
                 .stream()
@@ -104,30 +104,17 @@ public class TournamentPlayerServiceImpl implements TournamentPlayerService {
 
     // ── Complete round ────────────────────────────────────────────────────────
 
-    /**
-     * Marks a round as completed, then triggers a full recalculation.
-     *
-     * Penalty logic lives exclusively in PerformanceCalc.applyAbsencePenaltiesForMiniTournament()
-     * which is called inside reCalculateAllPerformances() — after the game replay.
-     * This guarantees the penalty is never wiped by subsequent game add/edit/delete operations.
-     */
     @Override
     public void completeRound(String roundId) {
         RoundEntity round = roundDao.findById(roundId)
                 .orElseThrow(() -> new RoundNotFoundException("Round not found: " + roundId));
 
-        if (round.isCompleted()) {
-            return; // idempotent
-        }
+        if (round.isCompleted()) return;
 
-        // Mark completed — this makes applyAbsencePenaltiesForMiniTournament() pick it up
         round.setCompleted(true);
         roundDao.save(round);
 
-        // Full recalc: resets all → replays games → applies absence penalties → updates ranks
         performanceCalc.reCalculateAllPerformances();
-
-        // Update activity statuses based on completed rounds
         checkAndUpdateInactivePlayersForMiniTournament();
     }
 
@@ -140,7 +127,8 @@ public class TournamentPlayerServiceImpl implements TournamentPlayerService {
 
         if (registrations.isEmpty()) return;
 
-        String tournamentId = registrations.get(0).getTournamentId();
+        // ← was getTournamentId(), now goes through the relationship
+        String tournamentId = registrations.get(0).getTournament().getTournamentId();
 
         List<RoundEntity> completedRounds = roundDao
                 .findByTournament_TournamentIdOrderByRoundNumberAsc(tournamentId)
@@ -160,7 +148,6 @@ public class TournamentPlayerServiceImpl implements TournamentPlayerService {
                 completedRounds.size() - CONSECUTIVE_MISS_THRESHOLD, completedRounds.size());
 
         List<Set<String>> playersPerRound = lastThree.stream()
-                // ✅ Option B fix
                 .map(r -> {
                     Set<String> ids = new HashSet<>();
                     for (GameEntity game : gameDao.findByRound_RoundId(r.getRoundId())) {
@@ -175,7 +162,6 @@ public class TournamentPlayerServiceImpl implements TournamentPlayerService {
             String pid = registration.getPlayerId();
             int registeredFrom = registration.getRegisteredFromRoundNumber();
 
-            // Only consider rounds that happened AFTER the player registered
             List<Set<String>> relevantRounds = new ArrayList<>();
             for (int i = 0; i < lastThree.size(); i++) {
                 if (lastThree.get(i).getRoundNumber() >= registeredFrom) {
@@ -183,7 +169,6 @@ public class TournamentPlayerServiceImpl implements TournamentPlayerService {
                 }
             }
 
-            // Not enough rounds since registration to trigger inactivity
             if (relevantRounds.size() < CONSECUTIVE_MISS_THRESHOLD) {
                 registration.setActivityStatus(PlayerActivityStatus.ACTIVE);
                 tournamentPlayerDao.save(registration);
@@ -205,7 +190,7 @@ public class TournamentPlayerServiceImpl implements TournamentPlayerService {
     private TournamentPlayerDTO toDTO(TournamentPlayerEntity entity) {
         TournamentPlayerDTO dto = new TournamentPlayerDTO();
         dto.setTournamentPlayerId(entity.getTournamentPlayerId());
-        dto.setTournamentId(entity.getTournamentId());
+        dto.setTournamentId(entity.getTournament().getTournamentId());  // ← was getTournamentId()
         dto.setTournamentName(entity.getTournamentName());
         dto.setPlayerId(entity.getPlayerId());
         dto.setFirstName(entity.getFirstName());
