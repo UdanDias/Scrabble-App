@@ -6,6 +6,7 @@ import lk.kelaniya.uok.scrabble.scrabbleapp.dao.*;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PairingDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PerformanceDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.RankedPlayerDTO;
+import lk.kelaniya.uok.scrabble.scrabbleapp.dto.enums.PlayerActivityStatus;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.GameEntity;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.PerformanceEntity;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.RoundEntity;
@@ -76,20 +77,19 @@ public class PerformanceServiceImpl implements PerformanceService {
                         g.getRound().getTournament().getTournamentName()));
 
         if (!isMiniTournament) {
-            // ── Non-Mini: simple wins+margin replay (unchanged) ───────────────
             return replayNonMiniTournament(tournamentGames);
         }
 
-        // ── Mini Tournament: round-by-round Elo replay ────────────────────────
-        //
-        // We replay games grouped by round, in round-number order.
-        // After each COMPLETED round we snapshot every player's Elo.
-        // previousEloRating = snapshot taken after the second-to-last completed round
-        //                     (i.e. the Elo they had before the most-recent completed round).
-        // This means the OLD column always shows the pre-last-round Elo regardless of
-        // whether the user is currently viewing mid-round or post-round.
+        // ── Fetch registrations and build active player set ───────────────────
+        List<TournamentPlayerEntity> registrations =
+                tournamentPlayerDao.findByTournamentId(tournamentId);
 
-        // Collect all completed rounds for this tournament, ordered by round number
+        // ✅ Only include ACTIVE players in leaderboard
+        Set<String> activePlayerIds = registrations.stream()
+                .filter(tp -> tp.getActivityStatus() != PlayerActivityStatus.INACTIVE)
+                .map(TournamentPlayerEntity::getPlayerId)
+                .collect(Collectors.toSet());
+
         List<RoundEntity> allRounds = roundDao.findByTournament_TournamentId(tournamentId)
                 .stream()
                 .sorted(Comparator.comparingInt(RoundEntity::getRoundNumber))
@@ -99,7 +99,6 @@ public class PerformanceServiceImpl implements PerformanceService {
                 .filter(RoundEntity::isCompleted)
                 .collect(Collectors.toList());
 
-        // Group all tournament games by roundId
         Map<String, List<GameEntity>> gamesByRound = new HashMap<>();
         for (GameEntity game : tournamentGames) {
             if (game.getRound() == null) continue;
@@ -107,10 +106,7 @@ public class PerformanceServiceImpl implements PerformanceService {
         }
 
         Map<String, TournamentPlayerStats> statsMap = new HashMap<>();
-
-        // Snapshot of Elo after the second-to-last completed round (= OLD column)
-        Map<String, Double> previousEloSnapshot = new HashMap<>(); // playerId → elo
-        // Snapshot after the last completed round (= NEW column)
+        Map<String, Double> previousEloSnapshot = new HashMap<>();
         Map<String, Double> lastCompletedEloSnapshot = new HashMap<>();
 
         // ── Replay round by round ──────────────────────────────────────────────
@@ -118,7 +114,6 @@ public class PerformanceServiceImpl implements PerformanceService {
             RoundEntity round = allRounds.get(i);
             List<GameEntity> roundGames = gamesByRound.getOrDefault(round.getRoundId(), List.of());
 
-            // Sort games within the round by date
             roundGames = roundGames.stream()
                     .sorted(Comparator.comparing(g -> g.getGameDate() != null
                             ? g.getGameDate() : java.time.LocalDate.MIN))
@@ -128,12 +123,7 @@ public class PerformanceServiceImpl implements PerformanceService {
                 processGame(game, statsMap, true);
             }
 
-            // After processing this round, if it's completed, rotate snapshots
-            // ✅ New code
             if (round.isCompleted()) {
-                // Apply absence penalty before snapshotting
-                List<TournamentPlayerEntity> registrations =
-                        tournamentPlayerDao.findByTournamentId(tournamentId);
                 Set<String> playersWhoPlayed = gamesByRound
                         .getOrDefault(round.getRoundId(), List.of())
                         .stream()
@@ -144,6 +134,9 @@ public class PerformanceServiceImpl implements PerformanceService {
                         .collect(Collectors.toSet());
 
                 for (TournamentPlayerEntity tp : registrations) {
+                    // ✅ Skip absence penalty for inactive players
+                    if (tp.getActivityStatus() == PlayerActivityStatus.INACTIVE) continue;
+
                     if (tp.getRegisteredFromRoundNumber() <= round.getRoundNumber()
                             && !playersWhoPlayed.contains(tp.getPlayerId())) {
                         TournamentPlayerStats stats = statsMap.get(tp.getPlayerId());
@@ -153,7 +146,6 @@ public class PerformanceServiceImpl implements PerformanceService {
                     }
                 }
 
-                // Rotate snapshots AFTER penalty is applied
                 previousEloSnapshot = new HashMap<>(lastCompletedEloSnapshot);
                 for (Map.Entry<String, TournamentPlayerStats> entry : statsMap.entrySet()) {
                     lastCompletedEloSnapshot.put(entry.getKey(), entry.getValue().eloRating);
@@ -180,24 +172,24 @@ public class PerformanceServiceImpl implements PerformanceService {
         final Map<String, Double> prevEloFinal = previousEloSnapshot;
         final Map<String, Double> lastEloFinal = lastCompletedEloSnapshot;
 
-        return statsList.stream().map(s -> {
-            RankedPlayerDTO dto = new RankedPlayerDTO();
-            dto.setPlayerId(s.playerId);
-            dto.setFirstName(s.firstName);
-            dto.setLastName(s.lastName);
-            dto.setUsername(s.username);
-            dto.setPlayerRank(s.rank);
-            dto.setTotalWins(s.wins);
-            dto.setTotalGamesPlayed(s.gamesPlayed);
-            dto.setCumMargin(s.cumMargin);
-            dto.setAvgMargin(s.avgMargin);
-            // NEW = Elo after last completed round (stable; not affected by in-progress games)
-            dto.setEloRating(lastEloFinal.getOrDefault(s.playerId, EloCalculator.DEFAULT_RATING));
-            // OLD = Elo before the last completed round started
-            dto.setPreviousEloRating(prevEloFinal.getOrDefault(s.playerId, EloCalculator.DEFAULT_RATING));
-            dto.setProvisional(EloCalculator.isProvisional(s.gamesPlayed));
-            return dto;
-        }).collect(Collectors.toList());
+        return statsList.stream()
+                .filter(s -> activePlayerIds.contains(s.playerId)) // ✅ exclude INACTIVE players
+                .map(s -> {
+                    RankedPlayerDTO dto = new RankedPlayerDTO();
+                    dto.setPlayerId(s.playerId);
+                    dto.setFirstName(s.firstName);
+                    dto.setLastName(s.lastName);
+                    dto.setUsername(s.username);
+                    dto.setPlayerRank(s.rank);
+                    dto.setTotalWins(s.wins);
+                    dto.setTotalGamesPlayed(s.gamesPlayed);
+                    dto.setCumMargin(s.cumMargin);
+                    dto.setAvgMargin(s.avgMargin);
+                    dto.setEloRating(lastEloFinal.getOrDefault(s.playerId, EloCalculator.DEFAULT_RATING));
+                    dto.setPreviousEloRating(prevEloFinal.getOrDefault(s.playerId, EloCalculator.DEFAULT_RATING));
+                    dto.setProvisional(EloCalculator.isProvisional(s.gamesPlayed));
+                    return dto;
+                }).collect(Collectors.toList());
     }
 
     /** Non-Mini Tournament: simple wins+margin replay, no Elo. */

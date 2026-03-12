@@ -5,6 +5,7 @@ import lk.kelaniya.uok.scrabble.scrabbleapp.dao.PerformanceDao;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dao.RoundDao;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dao.TournamentPlayerDao;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.GameDTO;
+import lk.kelaniya.uok.scrabble.scrabbleapp.dto.enums.PlayerActivityStatus;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.GameEntity;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.PerformanceEntity;
 import lk.kelaniya.uok.scrabble.scrabbleapp.entity.RoundEntity;
@@ -334,10 +335,17 @@ public class PerformanceCalc {
                 System.out.println(">>> Checking player: " + tp.getPlayerId() +
                         " registeredFrom=" + tp.getRegisteredFromRoundNumber() +
                         " roundNumber=" + round.getRoundNumber() +
-                        " played=" + playersWhoPlayed.contains(tp.getPlayerId()));
+                        " played=" + playersWhoPlayed.contains(tp.getPlayerId()) +
+                        " status=" + tp.getActivityStatus());
 
                 if (tp.getRegisteredFromRoundNumber() <= round.getRoundNumber()
                         && !playersWhoPlayed.contains(tp.getPlayerId())) {
+
+                    // ✅ Skip penalty for inactive players
+                    if (tp.getActivityStatus() == PlayerActivityStatus.INACTIVE) {
+                        System.out.println(">>> Skipping penalty for INACTIVE player: " + tp.getPlayerId());
+                        return;
+                    }
 
                     performanceDao.findById(tp.getPlayerId()).ifPresent(perf -> {
                         System.out.println(">>> Penalizing: " + tp.getPlayerId() +
