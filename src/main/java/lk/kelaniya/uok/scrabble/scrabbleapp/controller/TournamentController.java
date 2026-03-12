@@ -2,9 +2,11 @@ package lk.kelaniya.uok.scrabble.scrabbleapp.controller;
 
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.TournamentDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.TournamentPlayerDTO;
+import lk.kelaniya.uok.scrabble.scrabbleapp.dto.TournamentTeamDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.exception.TournamentNotFoundException;
 import lk.kelaniya.uok.scrabble.scrabbleapp.service.TournamentPlayerService;
 import lk.kelaniya.uok.scrabble.scrabbleapp.service.TournamentService;
+import lk.kelaniya.uok.scrabble.scrabbleapp.service.TournamentTeamService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,8 +19,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TournamentController {
 
-    private final TournamentService tournamentService;
-    private final TournamentPlayerService tournamentPlayerService;   // ← inject new service
+    private final TournamentService       tournamentService;
+    private final TournamentPlayerService tournamentPlayerService;
+    private final TournamentTeamService   tournamentTeamService;   // ← inject
 
     // ═══════════════════════════════════════════════════════════════
     //  Existing tournament endpoints (unchanged)
@@ -88,13 +91,9 @@ public class TournamentController {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  NEW — Tournament player registration endpoints
+    //  Tournament player endpoints (unchanged)
     // ═══════════════════════════════════════════════════════════════
 
-    /**
-     * POST /api/v1/tournament/registerplayer?tournamentId=xxx&playerId=yyy
-     * Registers an existing player into a tournament.
-     */
     @PostMapping("/registerplayer")
     public ResponseEntity<TournamentPlayerDTO> registerPlayer(
             @RequestParam("tournamentId") String tournamentId,
@@ -103,7 +102,6 @@ public class TournamentController {
             TournamentPlayerDTO result = tournamentPlayerService.registerPlayer(tournamentId, playerId);
             return new ResponseEntity<>(result, HttpStatus.CREATED);
         } catch (IllegalStateException e) {
-            // duplicate registration
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         } catch (TournamentNotFoundException e) {
             e.printStackTrace();
@@ -114,10 +112,6 @@ public class TournamentController {
         }
     }
 
-    /**
-     * DELETE /api/v1/tournament/removeplayer?tournamentPlayerId=xxx
-     * Removes a player registration record.
-     */
     @DeleteMapping("/removeplayer")
     public ResponseEntity<Void> removePlayer(@RequestParam("tournamentPlayerId") String tournamentPlayerId) {
         try {
@@ -131,16 +125,70 @@ public class TournamentController {
         }
     }
 
-    /**
-     * GET /api/v1/tournament/getplayers?tournamentId=xxx
-     * Returns all registered players for a tournament (used to populate the modal).
-     */
     @GetMapping("/getplayers")
     public ResponseEntity<List<TournamentPlayerDTO>> getPlayersByTournament(
             @RequestParam("tournamentId") String tournamentId) {
         try {
-            List<TournamentPlayerDTO> players = tournamentPlayerService.getPlayersByTournament(tournamentId);
-            return ResponseEntity.ok(players);
+            return ResponseEntity.ok(tournamentPlayerService.getPlayersByTournament(tournamentId));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  NEW — Tournament team endpoints
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * POST /api/v1/tournament/registerteam?tournamentId=xxx&teamId=yyy
+     * Registers an existing team into a tournament.
+     */
+    @PostMapping("/registerteam")
+    public ResponseEntity<TournamentTeamDTO> registerTeam(
+            @RequestParam("tournamentId") String tournamentId,
+            @RequestParam("teamId") String teamId) {
+        try {
+            TournamentTeamDTO result = tournamentTeamService.registerTeam(tournamentId, teamId);
+            return new ResponseEntity<>(result, HttpStatus.CREATED);
+        } catch (IllegalStateException e) {
+            // duplicate registration
+            return new ResponseEntity<>(HttpStatus.CONFLICT);
+        } catch (IllegalArgumentException | TournamentNotFoundException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * DELETE /api/v1/tournament/removeteam?tournamentTeamId=xxx
+     * Removes a team registration record.
+     */
+    @DeleteMapping("/removeteam")
+    public ResponseEntity<Void> removeTeam(@RequestParam("tournamentTeamId") String tournamentTeamId) {
+        try {
+            tournamentTeamService.removeTeam(tournamentTeamId);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * GET /api/v1/tournament/getteams?tournamentId=xxx
+     * Returns all registered teams for a tournament.
+     */
+    @GetMapping("/getteams")
+    public ResponseEntity<List<TournamentTeamDTO>> getTeamsByTournament(
+            @RequestParam("tournamentId") String tournamentId) {
+        try {
+            return ResponseEntity.ok(tournamentTeamService.getTeamsByTournament(tournamentId));
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
