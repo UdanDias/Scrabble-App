@@ -1,4 +1,3 @@
-
 package lk.kelaniya.uok.scrabble.scrabbleapp.service.impl;
 
 import jakarta.transaction.Transactional;
@@ -7,10 +6,7 @@ import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PairingDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PerformanceDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.RankedPlayerDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.enums.PlayerActivityStatus;
-import lk.kelaniya.uok.scrabble.scrabbleapp.entity.GameEntity;
-import lk.kelaniya.uok.scrabble.scrabbleapp.entity.PerformanceEntity;
-import lk.kelaniya.uok.scrabble.scrabbleapp.entity.RoundEntity;
-import lk.kelaniya.uok.scrabble.scrabbleapp.entity.TournamentPlayerEntity;
+import lk.kelaniya.uok.scrabble.scrabbleapp.entity.*;
 import lk.kelaniya.uok.scrabble.scrabbleapp.exception.PerformanceNotFoundException;
 import lk.kelaniya.uok.scrabble.scrabbleapp.service.PerformanceService;
 import lk.kelaniya.uok.scrabble.scrabbleapp.util.EloCalculator;
@@ -29,11 +25,12 @@ public class PerformanceServiceImpl implements PerformanceService {
 
     private static final String MINI_TOURNAMENT_NAME = "Mini Tournament Uok";
 
-    private final PerformanceDao  performanceDao;
-    private final EntityDTOConvert entityDTOConvert;
-    private final GameDao          gameDao;
-    private final RoundDao         roundDao;
+    private final PerformanceDao      performanceDao;
+    private final EntityDTOConvert    entityDTOConvert;
+    private final GameDao             gameDao;
+    private final RoundDao            roundDao;
     private final TournamentPlayerDao tournamentPlayerDao;
+    private final InactivityWindowDao inactivityWindowDao;
 
     // ── Basic queries ─────────────────────────────────────────────────────────
 
@@ -49,10 +46,6 @@ public class PerformanceServiceImpl implements PerformanceService {
         return entityDTOConvert.convertPerformanceEntityListToPerformanceDTOList(performanceDao.findAll());
     }
 
-    /**
-     * Global leaderboard removed — frontend now requires a tournament to be selected.
-     * Kept for interface compatibility only.
-     */
     @Override
     public List<RankedPlayerDTO> getPlayersOrderedByRank() {
         return List.of();
@@ -60,17 +53,10 @@ public class PerformanceServiceImpl implements PerformanceService {
 
     // ── Tournament leaderboard ────────────────────────────────────────────────
 
-    /**
-     * Returns ranked players for a specific tournament.
-     *
-     * - Mini Tournament Uok → Elo-based ranking (each player starts at 1200, games replayed chronologically)
-     * - All other tournaments → wins + avgMargin ranking
-     */
     public List<RankedPlayerDTO> getPlayersOrderedByRankByTournament(String tournamentId) {
         List<GameEntity> tournamentGames = gameDao.getGamesByTournamentId(tournamentId);
         if (tournamentGames.isEmpty()) return List.of();
 
-        // ── Detect Mini Tournament ────────────────────────────────────────────
         boolean isMiniTournament = tournamentGames.stream()
                 .filter(g -> g.getRound() != null && g.getRound().getTournament() != null)
                 .anyMatch(g -> MINI_TOURNAMENT_NAME.equals(
@@ -80,23 +66,26 @@ public class PerformanceServiceImpl implements PerformanceService {
             return replayNonMiniTournament(tournamentGames);
         }
 
-        // ── Fetch registrations and build active player set ───────────────────
+        // ── Registrations ─────────────────────────────────────────────────────
         List<TournamentPlayerEntity> registrations =
                 tournamentPlayerDao.findByTournamentId(tournamentId);
 
-        // ✅ Only include ACTIVE players in leaderboard
+        // Only show non-INACTIVE players on the leaderboard
         Set<String> activePlayerIds = registrations.stream()
                 .filter(tp -> tp.getActivityStatus() != PlayerActivityStatus.INACTIVE)
                 .map(TournamentPlayerEntity::getPlayerId)
                 .collect(Collectors.toSet());
 
+        // ── Build freeze windows map ──────────────────────────────────────────
+        // playerId → list of inactivity windows [(fromRound, returnRound), ...]
+        Map<String, List<InactivityWindowEntity>> freezeWindows = new HashMap<>();
+        inactivityWindowDao.findByTournamentId(tournamentId).forEach(w ->
+                freezeWindows.computeIfAbsent(w.getPlayerId(), k -> new ArrayList<>()).add(w));
+
+        // ── Rounds ────────────────────────────────────────────────────────────
         List<RoundEntity> allRounds = roundDao.findByTournament_TournamentId(tournamentId)
                 .stream()
                 .sorted(Comparator.comparingInt(RoundEntity::getRoundNumber))
-                .collect(Collectors.toList());
-
-        List<RoundEntity> completedRounds = allRounds.stream()
-                .filter(RoundEntity::isCompleted)
                 .collect(Collectors.toList());
 
         Map<String, List<GameEntity>> gamesByRound = new HashMap<>();
@@ -105,22 +94,22 @@ public class PerformanceServiceImpl implements PerformanceService {
             gamesByRound.computeIfAbsent(game.getRound().getRoundId(), k -> new ArrayList<>()).add(game);
         }
 
-        Map<String, TournamentPlayerStats> statsMap = new HashMap<>();
-        Map<String, Double> previousEloSnapshot = new HashMap<>();
-        Map<String, Double> lastCompletedEloSnapshot = new HashMap<>();
+        Map<String, TournamentPlayerStats> statsMap            = new HashMap<>();
+        Map<String, Double>                previousEloSnapshot = new HashMap<>();
+        Map<String, Double>                lastCompletedElo    = new HashMap<>();
 
-        // ── Replay round by round ──────────────────────────────────────────────
-        for (int i = 0; i < allRounds.size(); i++) {
-            RoundEntity round = allRounds.get(i);
-            List<GameEntity> roundGames = gamesByRound.getOrDefault(round.getRoundId(), List.of());
+        // ── Replay round by round ─────────────────────────────────────────────
+        for (RoundEntity round : allRounds) {
+            int roundNumber = round.getRoundNumber();
 
-            roundGames = roundGames.stream()
+            List<GameEntity> roundGames = gamesByRound.getOrDefault(round.getRoundId(), List.of())
+                    .stream()
                     .sorted(Comparator.comparing(g -> g.getGameDate() != null
                             ? g.getGameDate() : java.time.LocalDate.MIN))
                     .collect(Collectors.toList());
 
             for (GameEntity game : roundGames) {
-                processGame(game, statsMap, true);
+                processGame(game, statsMap, true, roundNumber, freezeWindows);
             }
 
             if (round.isCompleted()) {
@@ -133,22 +122,25 @@ public class PerformanceServiceImpl implements PerformanceService {
                         .filter(Objects::nonNull)
                         .collect(Collectors.toSet());
 
+                // Apply absence penalty — skip if player is frozen in this round
                 for (TournamentPlayerEntity tp : registrations) {
-                    // ✅ Skip absence penalty for inactive players
-                    if (tp.getActivityStatus() == PlayerActivityStatus.INACTIVE) continue;
+                    String pid = tp.getPlayerId();
 
-                    if (tp.getRegisteredFromRoundNumber() <= round.getRoundNumber()
-                            && !playersWhoPlayed.contains(tp.getPlayerId())) {
-                        TournamentPlayerStats stats = statsMap.get(tp.getPlayerId());
+                    // ✅ Skip if this round is inside any of the player's freeze windows
+                    if (isFrozen(pid, roundNumber, freezeWindows)) continue;
+
+                    if (tp.getRegisteredFromRoundNumber() <= roundNumber
+                            && !playersWhoPlayed.contains(pid)) {
+                        TournamentPlayerStats stats = statsMap.get(pid);
                         if (stats != null) {
                             stats.eloRating -= EloCalculator.ABSENCE_PENALTY;
                         }
                     }
                 }
 
-                previousEloSnapshot = new HashMap<>(lastCompletedEloSnapshot);
+                previousEloSnapshot = new HashMap<>(lastCompletedElo);
                 for (Map.Entry<String, TournamentPlayerStats> entry : statsMap.entrySet()) {
-                    lastCompletedEloSnapshot.put(entry.getKey(), entry.getValue().eloRating);
+                    lastCompletedElo.put(entry.getKey(), entry.getValue().eloRating);
                 }
             }
         }
@@ -163,17 +155,15 @@ public class PerformanceServiceImpl implements PerformanceService {
         int rank = 1;
         for (int i = 0; i < statsList.size(); i++) {
             if (i > 0 && Double.compare(statsList.get(i).eloRating,
-                    statsList.get(i - 1).eloRating) != 0) {
-                rank = i + 1;
-            }
+                    statsList.get(i - 1).eloRating) != 0) rank = i + 1;
             statsList.get(i).rank = rank;
         }
 
         final Map<String, Double> prevEloFinal = previousEloSnapshot;
-        final Map<String, Double> lastEloFinal = lastCompletedEloSnapshot;
+        final Map<String, Double> lastEloFinal  = lastCompletedElo;
 
         return statsList.stream()
-                .filter(s -> activePlayerIds.contains(s.playerId)) // ✅ exclude INACTIVE players
+                .filter(s -> activePlayerIds.contains(s.playerId))
                 .map(s -> {
                     RankedPlayerDTO dto = new RankedPlayerDTO();
                     dto.setPlayerId(s.playerId);
@@ -192,13 +182,12 @@ public class PerformanceServiceImpl implements PerformanceService {
                 }).collect(Collectors.toList());
     }
 
-    /** Non-Mini Tournament: simple wins+margin replay, no Elo. */
     private List<RankedPlayerDTO> replayNonMiniTournament(List<GameEntity> games) {
         Map<String, TournamentPlayerStats> statsMap = new HashMap<>();
         games.stream()
                 .sorted(Comparator.comparing(g -> g.getGameDate() != null
                         ? g.getGameDate() : java.time.LocalDate.MIN))
-                .forEach(game -> processGame(game, statsMap, false));
+                .forEach(game -> processGame(game, statsMap, false, 0, Collections.emptyMap()));
 
         List<TournamentPlayerStats> statsList = new ArrayList<>(statsMap.values());
         statsList.forEach(s -> s.avgMargin = s.gamesPlayed > 0
@@ -211,12 +200,9 @@ public class PerformanceServiceImpl implements PerformanceService {
         int rank = 1;
         for (int i = 0; i < statsList.size(); i++) {
             if (i > 0) {
-                TournamentPlayerStats prev = statsList.get(i - 1);
-                TournamentPlayerStats curr = statsList.get(i);
-                if (Double.compare(curr.wins, prev.wins) != 0
-                        || Double.compare(curr.avgMargin, prev.avgMargin) != 0) {
+                if (Double.compare(statsList.get(i).wins, statsList.get(i-1).wins) != 0
+                        || Double.compare(statsList.get(i).avgMargin, statsList.get(i-1).avgMargin) != 0)
                     rank = i + 1;
-                }
             }
             statsList.get(i).rank = rank;
         }
@@ -239,13 +225,20 @@ public class PerformanceServiceImpl implements PerformanceService {
         }).collect(Collectors.toList());
     }
 
-    /** Processes a single game into statsMap. Updates Elo only if isMiniTournament=true. */
+    /**
+     * Processes a single game.
+     * Elo is only updated if NEITHER player is frozen in this round.
+     */
     private void processGame(GameEntity game,
                              Map<String, TournamentPlayerStats> statsMap,
-                             boolean isMiniTournament) {
+                             boolean isMiniTournament,
+                             int roundNumber,
+                             Map<String, List<InactivityWindowEntity>> freezeWindows) {
         if (game.isBye()) {
             if (game.getPlayer1() == null) return;
             String pid = game.getPlayer1().getPlayerId();
+            boolean frozen = isFrozen(pid, roundNumber, freezeWindows);
+
             TournamentPlayerStats stats = statsMap.computeIfAbsent(pid,
                     id -> new TournamentPlayerStats(id,
                             game.getPlayer1().getFirstName(),
@@ -254,13 +247,18 @@ public class PerformanceServiceImpl implements PerformanceService {
             stats.gamesPlayed++;
             stats.wins++;
             stats.cumMargin += 50;
-            if (isMiniTournament) {
+
+            if (isMiniTournament && !frozen) {
                 stats.eloRating = EloCalculator.calculateBye(stats.eloRating, stats.gamesPlayed - 1);
             }
         } else {
             if (game.getPlayer1() == null || game.getPlayer2() == null) return;
             String p1id = game.getPlayer1().getPlayerId();
             String p2id = game.getPlayer2().getPlayerId();
+
+            boolean p1Frozen = isFrozen(p1id, roundNumber, freezeWindows);
+            boolean p2Frozen = isFrozen(p2id, roundNumber, freezeWindows);
+
             TournamentPlayerStats p1 = statsMap.computeIfAbsent(p1id,
                     id -> new TournamentPlayerStats(id,
                             game.getPlayer1().getFirstName(),
@@ -271,23 +269,28 @@ public class PerformanceServiceImpl implements PerformanceService {
                             game.getPlayer2().getFirstName(),
                             game.getPlayer2().getLastName(),
                             game.getPlayer2().getUsername()));
+
             p1.gamesPlayed++;
             p2.gamesPlayed++;
+
             boolean tied   = game.isGameTied();
             boolean p1wins = !tied && game.getWinner() != null
                     && game.getWinner().getPlayerId().equals(p1id);
+
             if (!tied) { if (p1wins) p1.wins++; else p2.wins++; }
             else       { p1.wins += 0.5; p2.wins += 0.5; }
+
             p1.cumMargin += (game.getScore1() - game.getScore2());
             p2.cumMargin += (game.getScore2() - game.getScore1());
-            if (isMiniTournament) {
-                double scoreA = tied ? 0.5 : (p1wins ? 1.0 : 0.0);
-//                double[] newRatings = EloCalculator.calculate(p1.eloRating, p2.eloRating, scoreA);
-                int scoreDiff = Math.abs(game.getScore1() - game.getScore2());
+
+            // ✅ Only exchange Elo if neither player is in a freeze window
+            if (isMiniTournament && !p1Frozen && !p2Frozen) {
+                double scoreA  = tied ? 0.5 : (p1wins ? 1.0 : 0.0);
+                int scoreDiff  = Math.abs(game.getScore1() - game.getScore2());
                 double[] newRatings = EloCalculator.calculate(
                         p1.eloRating, p2.eloRating,
                         scoreA, scoreDiff,
-                        p1.gamesPlayed - 1,   // pre-game count (already incremented above)
+                        p1.gamesPlayed - 1,
                         p2.gamesPlayed - 1
                 );
                 p1.eloRating = newRatings[0];
@@ -296,18 +299,37 @@ public class PerformanceServiceImpl implements PerformanceService {
         }
     }
 
+    // ── Freeze window check ───────────────────────────────────────────────────
+
+    /**
+     * Returns true if roundNumber falls inside any of the player's inactivity windows.
+     *
+     * Window covers: fromRound <= roundNumber < returnRound
+     * returnRound = null → still inactive → frozen from fromRound onward
+     */
+    private boolean isFrozen(String playerId,
+                             int roundNumber,
+                             Map<String, List<InactivityWindowEntity>> freezeWindows) {
+        List<InactivityWindowEntity> windows = freezeWindows.get(playerId);
+        if (windows == null || windows.isEmpty()) return false;
+        for (InactivityWindowEntity w : windows) {
+            boolean afterStart = roundNumber >= w.getFromRound();
+            boolean beforeEnd  = w.getReturnRound() == null || roundNumber < w.getReturnRound();
+            if (afterStart && beforeEnd) return true;
+        }
+        return false;
+    }
+
     // ── Swiss pairings ────────────────────────────────────────────────────────
 
     @Override
     public List<PairingDTO> getSwissPairings(String tournamentId) {
-
         List<RankedPlayerDTO> rankedPlayers = getPlayersOrderedByRankByTournament(tournamentId);
         if (rankedPlayers.isEmpty()) return List.of();
 
         LinkedHashMap<Double, List<RankedPlayerDTO>> groupMap = new LinkedHashMap<>();
-        for (RankedPlayerDTO player : rankedPlayers) {
+        for (RankedPlayerDTO player : rankedPlayers)
             groupMap.computeIfAbsent(player.getTotalWins(), k -> new ArrayList<>()).add(player);
-        }
 
         List<List<RankedPlayerDTO>> groups = new ArrayList<>(groupMap.values());
 
@@ -321,9 +343,7 @@ public class PerformanceServiceImpl implements PerformanceService {
 
         RankedPlayerDTO byePlayer = null;
         List<RankedPlayerDTO> lastGroup = groups.get(groups.size() - 1);
-        if (lastGroup.size() % 2 != 0) {
-            byePlayer = lastGroup.remove(lastGroup.size() - 1);
-        }
+        if (lastGroup.size() % 2 != 0) byePlayer = lastGroup.remove(lastGroup.size() - 1);
 
         List<PairingDTO> pairings = new ArrayList<>();
         int boardNumber = 1;
@@ -332,11 +352,9 @@ public class PerformanceServiceImpl implements PerformanceService {
             List<RankedPlayerDTO> group = groups.get(g);
             if (group.isEmpty()) continue;
             int half = group.size() / 2;
-
             for (int i = 0; i < half; i++) {
                 RankedPlayerDTO p1 = group.get(i);
                 RankedPlayerDTO p2 = group.get(half + i);
-
                 PairingDTO pairing = new PairingDTO();
                 pairing.setBoardNumber(boardNumber++);
                 pairing.setGroupNumber(g + 1);
@@ -378,7 +396,7 @@ public class PerformanceServiceImpl implements PerformanceService {
         String playerId, firstName, lastName, username;
         int    gamesPlayed = 0, cumMargin = 0, rank = 1;
         double wins = 0, avgMargin = 0;
-        double eloRating = EloCalculator.DEFAULT_RATING; // starts at 1200 per tournament scope
+        double eloRating = EloCalculator.DEFAULT_RATING;
 
         TournamentPlayerStats(String playerId, String firstName, String lastName, String username) {
             this.playerId  = playerId;

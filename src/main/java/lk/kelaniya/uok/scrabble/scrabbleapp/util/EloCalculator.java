@@ -5,7 +5,7 @@ public class EloCalculator {
     public static final double DEFAULT_RATING = 1200.0;
     public static final int K = 12;
     public static final int K_PROVISIONAL = 24;        // 2x faster for new players
-    public static final int PROVISIONAL_THRESHOLD = 3;
+    public static final int PROVISIONAL_THRESHOLD = 10;
     public static final double ABSENCE_PENALTY = 20.0;// games until "established"
 
     private EloCalculator() {}
