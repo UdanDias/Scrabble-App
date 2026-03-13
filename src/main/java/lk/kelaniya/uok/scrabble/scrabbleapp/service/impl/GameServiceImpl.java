@@ -165,8 +165,6 @@ public class GameServiceImpl implements GameService {
             RoundEntity round = roundDao.findById(gameDTO.getRoundId())
                     .orElseThrow(() -> new RoundNotFoundException("Round not found"));
             gameEntity.setRound(round);
-        } else {
-            gameEntity.setRound(null);
         }
 
         GameEntity updatedGame = gameDao.save(gameEntity);

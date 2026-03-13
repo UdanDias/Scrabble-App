@@ -33,7 +33,7 @@ public class TeamServiceImpl implements TeamService {
     @Override
     public TeamDTO createTeam(TeamDTO teamDTO) {
         TeamEntity entity = new TeamEntity();
-        entity.setTeamId(UtilData.generateTeamId());   // add this generator to UtilData
+        entity.setTeamId(UtilData.generateTeamId());
         entity.setTeamName(teamDTO.getTeamName());
         entity.setTeamSize(teamDTO.getTeamSize());
         entity.setPlayers(resolvePlayers(teamDTO.getPlayerIds()));
@@ -72,19 +72,18 @@ public class TeamServiceImpl implements TeamService {
     }
 
     // ── Team Leaderboard ─────────────────────────────────────────────────────
-    // Aggregate individual player performance within a tournament into team scores.
-    // Team score = sum of all member scores/wins across all games in the tournament.
 
     @Override
     public List<RankedTeamDTO> getTeamLeaderboard(String tournamentId) {
+
         List<TeamEntity> teams = teamDao.findAll();
         if (teams.isEmpty()) return List.of();
 
         List<GameEntity> tournamentGames = gameDao.getGamesByTournamentId(tournamentId);
         if (tournamentGames.isEmpty()) return List.of();
 
-        // Build playerId → teamId map
-        Map<String, String> playerToTeam = new HashMap<>();
+        // ── player → team lookup ─────────────────────────────
+        Map<String,String> playerToTeam = new HashMap<>();
         for (TeamEntity team : teams) {
             if (team.getPlayers() != null) {
                 for (PlayerEntity p : team.getPlayers()) {
@@ -93,107 +92,213 @@ public class TeamServiceImpl implements TeamService {
             }
         }
 
-        // Aggregate stats per team
-        Map<String, TeamStats> statsMap = new HashMap<>();
+        // ── initialise stats ─────────────────────────────────
+        Map<String,TeamStats> statsMap = new HashMap<>();
         for (TeamEntity team : teams) {
-            statsMap.put(team.getTeamId(), new TeamStats(team.getTeamId(), team.getTeamName()));
+            statsMap.put(team.getTeamId(),
+                    new TeamStats(team.getTeamId(), team.getTeamName()));
         }
 
-        for (GameEntity game : tournamentGames) {
-            if (game.isBye()) {
-                if (game.getPlayer1() == null) continue;
-                String pid = game.getPlayer1().getPlayerId();
-                String tid = playerToTeam.get(pid);
-                if (tid == null) continue;
-                TeamStats stats = statsMap.get(tid);
-                if (stats == null) continue;
-                stats.gamesPlayed++;
-                stats.wins += 1;
-                stats.cumMargin += 50;
-            } else {
-                if (game.getPlayer1() == null || game.getPlayer2() == null) continue;
+        // ── group games by round ─────────────────────────────
+        Map<String,List<GameEntity>> gamesByRound = new LinkedHashMap<>();
+        for (GameEntity g : tournamentGames) {
+
+            String roundId = g.getRound() != null
+                    ? g.getRound().getRoundId()
+                    : "NO_ROUND";
+
+            gamesByRound
+                    .computeIfAbsent(roundId,k->new ArrayList<>())
+                    .add(g);
+        }
+
+        // ── process each round ───────────────────────────────
+        for (Map.Entry<String,List<GameEntity>> entry : gamesByRound.entrySet()) {
+
+            List<GameEntity> roundGames = entry.getValue();
+
+            Map<String,Double> roundGameWins = new HashMap<>();
+            Map<String,Integer> roundMargin  = new HashMap<>();
+
+            for (GameEntity game : roundGames) {
+
+                if (game.isBye()) {
+
+                    if (game.getPlayer1()==null) continue;
+
+                    String tid = playerToTeam.get(game.getPlayer1().getPlayerId());
+                    if (tid==null) continue;
+
+                    TeamStats stats = statsMap.get(tid);
+
+                    stats.totalGamesPlayed++;
+                    stats.cumMargin += 50;
+
+                    roundGameWins.merge(tid,1.0,Double::sum);
+                    roundMargin.merge(tid,50,Integer::sum);
+
+                    continue;
+                }
+
+                if (game.getPlayer1()==null || game.getPlayer2()==null) continue;
+
                 String p1id = game.getPlayer1().getPlayerId();
                 String p2id = game.getPlayer2().getPlayerId();
+
                 String t1id = playerToTeam.get(p1id);
                 String t2id = playerToTeam.get(p2id);
 
-                // Only count games where both players are on registered teams
-                if (t1id != null) {
+                int margin1 = game.getScore1() - game.getScore2();
+                int margin2 = game.getScore2() - game.getScore1();
+
+                if (t1id!=null) {
+
                     TeamStats t1 = statsMap.get(t1id);
-                    if (t1 != null) {
-                        t1.gamesPlayed++;
-                        t1.cumMargin += (game.getScore1() - game.getScore2());
-                        if (!game.isGameTied() && game.getWinner() != null) {
-                            if (game.getWinner().getPlayerId().equals(p1id)) t1.wins += 1;
-                        } else if (game.isGameTied()) {
-                            t1.wins += 0.5;
-                        }
+
+                    t1.totalGamesPlayed++;
+                    t1.cumMargin += margin1;
+
+                    roundMargin.merge(t1id,margin1,Integer::sum);
+
+                    if (game.isGameTied()) {
+                        roundGameWins.merge(t1id,0.5,Double::sum);
+                    }
+                    else if (game.getWinner()!=null &&
+                            game.getWinner().getPlayerId().equals(p1id)) {
+
+                        roundGameWins.merge(t1id,1.0,Double::sum);
                     }
                 }
-                if (t2id != null && !Objects.equals(t1id, t2id)) {
+
+                if (t2id!=null && !Objects.equals(t1id,t2id)) {
+
                     TeamStats t2 = statsMap.get(t2id);
-                    if (t2 != null) {
-                        t2.gamesPlayed++;
-                        t2.cumMargin += (game.getScore2() - game.getScore1());
-                        if (!game.isGameTied() && game.getWinner() != null) {
-                            if (game.getWinner().getPlayerId().equals(p2id)) t2.wins += 1;
-                        } else if (game.isGameTied()) {
-                            t2.wins += 0.5;
-                        }
+
+                    t2.totalGamesPlayed++;
+                    t2.cumMargin += margin2;
+
+                    roundMargin.merge(t2id,margin2,Integer::sum);
+
+                    if (game.isGameTied()) {
+                        roundGameWins.merge(t2id,0.5,Double::sum);
+                    }
+                    else if (game.getWinner()!=null &&
+                            game.getWinner().getPlayerId().equals(p2id)) {
+
+                        roundGameWins.merge(t2id,1.0,Double::sum);
+                    }
+                }
+            }
+
+            // ── determine round winner ───────────────────────
+            for (Map.Entry<String,Double> e : roundGameWins.entrySet()) {
+
+                if (e.getValue() > 2.5) {
+
+                    TeamStats stats = statsMap.get(e.getKey());
+                    if (stats!=null) stats.roundWins++;
+                }
+            }
+
+            // ── handle 2.5 vs 2.5 tie ───────────────────────
+            List<String> roundTeams = new ArrayList<>(roundGameWins.keySet());
+
+            if (roundTeams.size()==2) {
+
+                String t1 = roundTeams.get(0);
+                String t2 = roundTeams.get(1);
+
+                double w1 = roundGameWins.getOrDefault(t1,0.0);
+                double w2 = roundGameWins.getOrDefault(t2,0.0);
+
+                if (w1==2.5 && w2==2.5) {
+
+                    int m1 = roundMargin.getOrDefault(t1,0);
+                    int m2 = roundMargin.getOrDefault(t2,0);
+
+                    if (m1 > m2) {
+                        statsMap.get(t1).roundWins++;
+                    }
+                    else if (m2 > m1) {
+                        statsMap.get(t2).roundWins++;
                     }
                 }
             }
         }
 
-        // Only include teams with games played
-        List<TeamStats> active = statsMap.values().stream()
-                .filter(s -> s.gamesPlayed > 0)
+        // ── filter active teams ─────────────────────────────
+        List<TeamStats> active = statsMap.values()
+                .stream()
+                .filter(s -> s.totalGamesPlayed>0)
                 .collect(Collectors.toList());
 
-        // Calculate avg margin
-        active.forEach(s -> s.avgMargin = s.gamesPlayed > 0
-                ? Math.round((double) s.cumMargin / s.gamesPlayed * 100.0) / 100.0 : 0.0);
+        // ── sort leaderboard ───────────────────────────────
+        active.sort((a,b)->{
 
-        // Sort: wins DESC, avgMargin DESC
-        active.sort((a, b) -> {
-            int c = Double.compare(b.wins, a.wins);
-            return c != 0 ? c : Double.compare(b.avgMargin, a.avgMargin);
+            int c = Integer.compare(b.roundWins,a.roundWins);
+            if (c!=0) return c;
+
+            return Integer.compare(b.cumMargin,a.cumMargin);
         });
 
-        // Assign ranks with tie support
+        // ── assign ranks ───────────────────────────────────
         int rank = 1;
-        for (int i = 0; i < active.size(); i++) {
-            if (i > 0) {
-                TeamStats prev = active.get(i - 1);
+
+        for (int i=0;i<active.size();i++) {
+
+            if (i>0) {
+
+                TeamStats prev = active.get(i-1);
                 TeamStats curr = active.get(i);
-                if (Double.compare(curr.wins, prev.wins) != 0 ||
-                        Double.compare(curr.avgMargin, prev.avgMargin) != 0) {
-                    rank = i + 1;
+
+                if (curr.roundWins!=prev.roundWins ||
+                        curr.cumMargin!=prev.cumMargin) {
+
+                    rank = i+1;
                 }
             }
+
             active.get(i).rank = rank;
         }
 
-        // Map to teams entity for members
-        Map<String, TeamEntity> teamEntityMap = teams.stream()
-                .collect(Collectors.toMap(TeamEntity::getTeamId, t -> t));
+        Map<String,TeamEntity> teamEntityMap = teams.stream()
+                .collect(Collectors.toMap(TeamEntity::getTeamId,t->t));
 
-        return active.stream().map(s -> {
+        return active.stream().map(s->{
+
             RankedTeamDTO dto = new RankedTeamDTO();
+
             dto.setTeamId(s.teamId);
             dto.setTeamName(s.teamName);
             dto.setTeamRank(s.rank);
-            dto.setTotalWins(s.wins);
-            dto.setTotalGamesPlayed(s.gamesPlayed);
+            dto.setRoundWins(s.roundWins);
+            dto.setTotalWins(s.roundWins);
+            dto.setTotalGamesPlayed(s.totalGamesPlayed);
             dto.setCumMargin(s.cumMargin);
-            dto.setAvgMargin(s.avgMargin);
+
+            dto.setAvgMargin(
+                    s.totalGamesPlayed>0
+                            ? Math.round((double)s.cumMargin/s.totalGamesPlayed*100.0)/100.0
+                            : 0.0
+            );
+
             TeamEntity te = teamEntityMap.get(s.teamId);
-            if (te != null && te.getPlayers() != null) {
-                dto.setMembers(te.getPlayers().stream()
-                        .map(p -> new TeamMemberDTO(p.getPlayerId(), p.getFirstName(), p.getLastName()))
-                        .collect(Collectors.toList()));
+
+            if (te!=null && te.getPlayers()!=null) {
+
+                dto.setMembers(
+                        te.getPlayers()
+                                .stream()
+                                .map(p->new TeamMemberDTO(
+                                        p.getPlayerId(),
+                                        p.getFirstName(),
+                                        p.getLastName()))
+                                .collect(Collectors.toList())
+                );
             }
+
             return dto;
+
         }).collect(Collectors.toList());
     }
 
@@ -204,7 +309,6 @@ public class TeamServiceImpl implements TeamService {
         List<RankedTeamDTO> rankedTeams = getTeamLeaderboard(tournamentId);
         if (rankedTeams.isEmpty()) return List.of();
 
-        // Group by wins (same cascade logic as individual)
         LinkedHashMap<Double, List<RankedTeamDTO>> groupMap = new LinkedHashMap<>();
         for (RankedTeamDTO team : rankedTeams) {
             groupMap.computeIfAbsent(team.getTotalWins(), k -> new ArrayList<>()).add(team);
@@ -212,7 +316,6 @@ public class TeamServiceImpl implements TeamService {
 
         List<List<RankedTeamDTO>> groups = new ArrayList<>(groupMap.values());
 
-        // Cascade: if group i is odd, take TOP of group i+1 and move up
         for (int i = 0; i < groups.size() - 1; i++) {
             if (groups.get(i).size() % 2 != 0) {
                 List<RankedTeamDTO> next = groups.get(i + 1);
@@ -223,14 +326,12 @@ public class TeamServiceImpl implements TeamService {
         }
         groups.removeIf(List::isEmpty);
 
-        // BYE for last group if odd
         RankedTeamDTO byeTeam = null;
         List<RankedTeamDTO> lastGroup = groups.get(groups.size() - 1);
         if (lastGroup.size() % 2 != 0) {
             byeTeam = lastGroup.remove(lastGroup.size() - 1);
         }
 
-        // Generate pairings
         List<TeamPairingDTO> pairings = new ArrayList<>();
         int boardNumber = 1;
 
@@ -238,7 +339,7 @@ public class TeamServiceImpl implements TeamService {
             List<RankedTeamDTO> group = groups.get(g);
             if (group.isEmpty()) continue;
             int half = group.size() / 2;
-            List<RankedTeamDTO> top = group.subList(0, half);
+            List<RankedTeamDTO> top    = group.subList(0, half);
             List<RankedTeamDTO> bottom = group.subList(half, group.size());
 
             for (int i = 0; i < half; i++) {
@@ -304,12 +405,18 @@ public class TeamServiceImpl implements TeamService {
         return dto;
     }
 
+    // ── Inner stats class ─────────────────────────────────────────────────────
+
     private static class TeamStats {
         String teamId, teamName;
-        int gamesPlayed = 0, cumMargin = 0, rank = 1;
-        double wins = 0, avgMargin = 0;
+        int totalGamesPlayed = 0;
+        int cumMargin        = 0;
+        int roundWins        = 0;
+        int rank             = 1;
+        double avgMargin     = 0;
+
         TeamStats(String teamId, String teamName) {
-            this.teamId = teamId;
+            this.teamId   = teamId;
             this.teamName = teamName;
         }
     }

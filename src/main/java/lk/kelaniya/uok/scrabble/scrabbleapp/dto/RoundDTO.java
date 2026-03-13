@@ -30,4 +30,5 @@ public class RoundDTO {
     private Integer roundNumber;
     private String  tournamentId;
     private boolean completed; // ✅ NEW — true when the round is officially completed
+
 }

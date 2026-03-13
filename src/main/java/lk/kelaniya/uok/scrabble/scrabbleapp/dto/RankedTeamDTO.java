@@ -19,4 +19,5 @@ public class RankedTeamDTO implements Serializable {
     private int cumMargin;
     private double avgMargin;
     private List<TeamMemberDTO> members;
+    private int roundWins;
 }
