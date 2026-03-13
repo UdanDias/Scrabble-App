@@ -5,6 +5,7 @@ import lk.kelaniya.uok.scrabble.scrabbleapp.dto.PerformanceDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.RankedPlayerDTO;
 import lk.kelaniya.uok.scrabble.scrabbleapp.exception.PerformanceNotFoundException;
 import lk.kelaniya.uok.scrabble.scrabbleapp.service.PerformanceService;
+import lk.kelaniya.uok.scrabble.scrabbleapp.util.PerformanceCalc;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PerformanceController {
     private final PerformanceService performanceService;
+    private final PerformanceCalc performanceCalc;
     @GetMapping
     public String healthCheck(){
         return "Health controller is running";
@@ -73,6 +75,11 @@ public class PerformanceController {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+    @PostMapping("/recalculate")
+    public ResponseEntity<Void> recalculate() {
+        performanceCalc.reCalculateAllPerformances();
+        return ResponseEntity.ok().build();
     }
 
 }

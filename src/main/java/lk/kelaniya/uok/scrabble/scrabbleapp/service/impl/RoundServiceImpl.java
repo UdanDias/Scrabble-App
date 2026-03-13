@@ -91,6 +91,8 @@ import lk.kelaniya.uok.scrabble.scrabbleapp.entity.TournamentEntity;
 import lk.kelaniya.uok.scrabble.scrabbleapp.exception.RoundNotFoundException;
 import lk.kelaniya.uok.scrabble.scrabbleapp.exception.TournamentNotFoundException;
 import lk.kelaniya.uok.scrabble.scrabbleapp.service.RoundService;
+import lk.kelaniya.uok.scrabble.scrabbleapp.service.TournamentPlayerService;
+import lk.kelaniya.uok.scrabble.scrabbleapp.service.TournamentService;
 import lk.kelaniya.uok.scrabble.scrabbleapp.util.PerformanceCalc;
 import lk.kelaniya.uok.scrabble.scrabbleapp.util.UtilData;
 import lombok.RequiredArgsConstructor;
@@ -107,6 +109,7 @@ public class RoundServiceImpl implements RoundService {
     private final RoundDao        roundDao;
     private final TournamentDao   tournamentDao;
     private final PerformanceCalc performanceCalc; // ✅ inject so we can recalc on completion
+    private final TournamentPlayerService tournamentPlayerService;
 
     @Override
     public void addRound(RoundDTO roundDTO) {
@@ -170,6 +173,8 @@ public class RoundServiceImpl implements RoundService {
         RoundEntity entity = roundDao.findById(roundId)
                 .orElseThrow(() -> new RoundNotFoundException("Round not found: " + roundId));
         roundDao.delete(entity);
+        performanceCalc.reCalculateAllPerformances();
+        tournamentPlayerService.checkAndUpdateInactivePlayersForMiniTournament();
     }
 
     private RoundDTO mapToDTO(RoundEntity entity) {
