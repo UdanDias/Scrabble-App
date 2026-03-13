@@ -140,4 +140,20 @@ public class GameController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    @PostMapping("/addgames/bulk")
+    public ResponseEntity<Void> addGamesBulk(@RequestBody List<GameDTO> gameDTOs) {
+        if (gameDTOs == null || gameDTOs.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        try {
+            gameService.addGamesBulk(gameDTOs);
+            return new ResponseEntity<>(HttpStatus.CREATED);
+        } catch (PlayerNotFoundException | GameNotFoundException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

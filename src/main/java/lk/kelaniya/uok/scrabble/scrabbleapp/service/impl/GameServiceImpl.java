@@ -201,4 +201,46 @@ public class GameServiceImpl implements GameService {
                 .map(entityDTOConvert::convertGameEntityToPlayerGameDTO)
                 .collect(Collectors.toList());
     }
+    @Override
+    public void addGamesBulk(List<GameDTO> gameDTOs) {
+        for (GameDTO gameDTO : gameDTOs) {
+            gameDTO.setGameId(UtilData.generateGameId());
+            gameDTO.setGameDate(UtilData.generateTodayDate());
+
+            int calcMargin = performanceCalc.calcMargin(gameDTO);
+            gameDTO.setMargin(calcMargin);
+            gameDTO.setWinnerId(performanceCalc.calcWinner(gameDTO));
+            gameDTO.setGameTied(gameDTO.getScore1() == gameDTO.getScore2());
+            if (gameDTO.isGameTied()) {
+                gameDTO.setWinnerId("");
+            }
+
+            PlayerEntity player1 = playerDao.findById(gameDTO.getPlayer1Id())
+                    .orElseThrow(() -> new PlayerNotFoundException("Player1 not found"));
+            PlayerEntity player2 = playerDao.findById(gameDTO.getPlayer2Id())
+                    .orElseThrow(() -> new PlayerNotFoundException("Player2 not found"));
+
+            GameEntity gameEntity = entityDTOConvert.convertGameDTOToGameEntity(gameDTO);
+            gameEntity.setPlayer1(player1);
+            gameEntity.setPlayer2(player2);
+
+            if (gameDTO.getWinnerId() != null && !gameDTO.getWinnerId().isEmpty()) {
+                PlayerEntity winner = playerDao.findById(gameDTO.getWinnerId())
+                        .orElseThrow(() -> new PlayerNotFoundException("Winner not found"));
+                gameEntity.setWinner(winner);
+            }
+
+            if (gameDTO.getRoundId() != null && !gameDTO.getRoundId().isEmpty()) {
+                RoundEntity round = roundDao.findById(gameDTO.getRoundId())
+                        .orElseThrow(() -> new RoundNotFoundException("Round not found"));
+                gameEntity.setRound(round);
+            }
+
+            gameDao.save(gameEntity);
+        }
+
+        // Recalculate once after all games are saved — not per game
+        performanceCalc.reCalculateAllPerformances();
+        tournamentPlayerService.checkAndUpdateInactivePlayersForMiniTournament();
+    }
 }

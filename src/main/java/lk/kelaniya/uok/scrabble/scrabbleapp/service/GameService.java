@@ -15,4 +15,5 @@ public interface GameService {
     List<GameDTO> getAllGames();
     List<PlayerGameDTO> getAllGamesByPlayerId(String playerId);
     List<PlayerGameDTO> getGamesByRound(String roundId);
+    void addGamesBulk(List<GameDTO> gameDTOs);
 }
