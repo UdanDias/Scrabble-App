@@ -15,7 +15,7 @@ public class CORSConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource(){
         var corsConfiguration=new CorsConfiguration();
-        corsConfiguration.setAllowedOrigins(List.of("http://localhost:3000"));
+        corsConfiguration.setAllowedOrigins(List.of("http://localhost:3000","https://scrabblix-8317b.web.app"));
         corsConfiguration.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
         corsConfiguration.setAllowedHeaders(List.of("Authorization","Content-Type")); //check this one
         corsConfiguration.setExposedHeaders(List.of( "Authorization"));
