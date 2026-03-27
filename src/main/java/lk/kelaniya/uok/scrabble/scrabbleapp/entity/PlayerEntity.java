@@ -23,7 +23,6 @@ public class PlayerEntity {
 
     private String firstName;
     private String lastName;
-    private int age;
     private String gender;
     private LocalDate dob;
     private String email;
@@ -33,6 +32,8 @@ public class PlayerEntity {
     private String academicLevel;
     private LocalDate accountCreatedDate;
     private String username;
+    private String university;
+    private String studentNo;
 
     @OneToOne(mappedBy = "player", cascade = CascadeType.ALL , orphanRemoval = true)
     @ToString.Exclude

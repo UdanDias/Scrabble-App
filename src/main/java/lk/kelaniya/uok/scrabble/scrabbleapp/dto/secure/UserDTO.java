@@ -40,11 +40,13 @@ public class UserDTO implements Serializable {
     private String password;
     private Role role;
 
+
     // Player fields
     private String playerId;
     private String firstName;
     private String lastName;
-    private int age;
+    private String university;
+    private String studentNo;
     private String gender;
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate dob;

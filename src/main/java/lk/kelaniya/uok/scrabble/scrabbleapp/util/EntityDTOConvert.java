@@ -117,33 +117,33 @@ public class EntityDTOConvert {
 //    public List<UserDTO> convertUserEntityListToUserDTOList(List<UserEntity> userEntityList) {
 //        return modelMapper.map(userEntityList, new TypeToken<List<UserDTO>>(){}.getType());
 //    }
-    public UserDTO convertUserEntityToUserDTO(UserEntity userEntity) {
-        UserDTO dto = new UserDTO();
+public UserDTO convertUserEntityToUserDTO(UserEntity userEntity) {
+    UserDTO dto = new UserDTO();
 
-        // User fields
-        dto.setUserId(userEntity.getUserId());
-        dto.setEmail(userEntity.getEmail());
-        dto.setRole(userEntity.getRole());
-        // don't map password back for security
+    // User fields
+    dto.setUserId(userEntity.getUserId());
+    dto.setEmail(userEntity.getEmail());
+    dto.setRole(userEntity.getUserRole()); // ✅ getUserRole() not getRole()
 
-        // Player fields from nested player entity
-        PlayerEntity player = userEntity.getPlayer();
-        if (player != null) {
-            dto.setPlayerId(player.getPlayerId());
-            dto.setFirstName(player.getFirstName());
-            dto.setLastName(player.getLastName());
-            dto.setAge(player.getAge());
-            dto.setGender(player.getGender());
-            dto.setDob(player.getDob());
-            dto.setPhone(player.getPhone());
-            dto.setAddress(player.getAddress());
-            dto.setFaculty(player.getFaculty());
-            dto.setAcademicLevel(player.getAcademicLevel());
-            dto.setAccountCreatedDate(player.getAccountCreatedDate());
-        }
-
-        return dto;
+    // Player fields
+    PlayerEntity player = userEntity.getPlayer();
+    if (player != null) {
+        dto.setPlayerId(player.getPlayerId());
+        dto.setFirstName(player.getFirstName());
+        dto.setLastName(player.getLastName());
+        dto.setUniversity(player.getUniversity());   // ✅
+        dto.setStudentNo(player.getStudentNo());     // ✅
+        dto.setGender(player.getGender());
+        dto.setDob(player.getDob());
+        dto.setPhone(player.getPhone());
+        dto.setAddress(player.getAddress());
+        dto.setFaculty(player.getFaculty());
+        dto.setAcademicLevel(player.getAcademicLevel());
+        dto.setAccountCreatedDate(player.getAccountCreatedDate());
     }
+
+    return dto;
+}
     public List<UserDTO> convertUserEntityListToUserDTOList(List<UserEntity> userEntityList) {
         return userEntityList.stream()
                 .map(this::convertUserEntityToUserDTO)

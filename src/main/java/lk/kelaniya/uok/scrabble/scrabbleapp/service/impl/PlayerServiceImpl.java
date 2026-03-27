@@ -76,7 +76,6 @@ public void deletePlayer(String playerId) {
                 .orElseThrow(()->new PlayerNotFoundException("Player not Found"));
         playerEntity.setFirstName(playerDTO.getFirstName());
         playerEntity.setLastName(playerDTO.getLastName());
-        playerEntity.setAge(UtilData.calcAge(playerDTO.getDob()));
         playerEntity.setGender(playerDTO.getGender());
         playerEntity.setDob(playerDTO.getDob());
         playerEntity.setEmail(playerDTO.getEmail());

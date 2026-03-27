@@ -6,6 +6,7 @@ import jakarta.transaction.Transactional;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dao.PerformanceDao;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dao.PlayerDao;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dao.secure.UserDao;
+import lk.kelaniya.uok.scrabble.scrabbleapp.dto.enums.Role;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.secure.JWTAuthResponse;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.secure.SignIn;
 import lk.kelaniya.uok.scrabble.scrabbleapp.dto.secure.UserDTO;
@@ -59,7 +60,8 @@ public JWTAuthResponse signIn(SignIn signIn) {
     var generateToken = jwtutils.generateToken(
             userByEmail.getEmail(),
             userByEmail.getAuthorities(),
-            playerId);
+            playerId,
+            userByEmail.getUserId());
     return JWTAuthResponse.builder().token(generateToken).build();
 }
 
@@ -71,7 +73,8 @@ public JWTAuthResponse signIn(SignIn signIn) {
         player.setPlayerId(UtilData.generatePlayerId());
         player.setFirstName(registerDTO.getFirstName());
         player.setLastName(registerDTO.getLastName());
-        player.setAge(registerDTO.getAge());
+        player.setUniversity(registerDTO.getUniversity());
+        player.setStudentNo(registerDTO.getStudentNo());
         player.setGender(registerDTO.getGender());
         player.setDob(registerDTO.getDob());
         player.setEmail(registerDTO.getEmail());
@@ -105,14 +108,15 @@ public JWTAuthResponse signIn(SignIn signIn) {
         userEntity.setLastName(registerDTO.getLastName());
         userEntity.setEmail(registerDTO.getEmail());
         userEntity.setPassword(passwordEncoder.encode(registerDTO.getPassword()));
-        userEntity.setRole(registerDTO.getRole());
+        userEntity.setUserRole(Role.USER);
         userEntity.setPlayer(player);
         UserEntity savedUser = userDao.save(userEntity);
 
         var generatedToken = jwtutils.generateToken(
                 savedUser.getEmail(),
                 savedUser.getAuthorities(),
-                savedUser.getPlayer().getPlayerId());
+                savedUser.getPlayer().getPlayerId(),
+                savedUser.getUserId());
         return JWTAuthResponse.builder().token(generatedToken).build();
     }
 
@@ -136,7 +140,7 @@ public JWTAuthResponse signIn(SignIn signIn) {
         user.setFirstName(userDTO.getFirstName());
         user.setLastName(userDTO.getLastName());
         user.setEmail(userDTO.getEmail());
-        user.setRole(userDTO.getRole());
+        user.setUserRole(Role.USER);
 
         if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
             // Only encode and save if the new password is different from the current one
@@ -149,7 +153,6 @@ public JWTAuthResponse signIn(SignIn signIn) {
         if (player != null) {
             player.setFirstName(userDTO.getFirstName());
             player.setLastName(userDTO.getLastName());
-            player.setAge(userDTO.getAge());
             player.setGender(userDTO.getGender());
             player.setDob(userDTO.getDob());
             player.setEmail(userDTO.getEmail());
