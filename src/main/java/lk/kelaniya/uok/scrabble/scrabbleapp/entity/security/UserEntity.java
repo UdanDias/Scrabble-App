@@ -28,7 +28,7 @@ public class UserEntity implements Serializable, UserDetails {
     private String email;
     private String password;
     @Enumerated(EnumType.STRING)
-    private Role userRole;
+    private Role userRole= Role.USER;
     @OneToOne(optional = false)
     @JoinColumn(name = "player_id", nullable = false)
     private PlayerEntity player;
